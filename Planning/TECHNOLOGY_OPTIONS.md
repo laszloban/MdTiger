@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft 0.1 – for discussion |
+| **Status** | Decided: Tauri 2 (2026-11-25) |
 | **Date** | 2026-11-25 |
 | **Input** | [FUNCTIONAL_REQUIREMENTS.md](FUNCTIONAL_REQUIREMENTS.md), Draft 0.4 |
 | **Output** | A shortlist and a spike plan (§6). The final choice comes after the spike. |
@@ -201,3 +201,10 @@ Build **one** TypeScript front end and run it in **two** thin shells (A and B).
 **Decision after the spike:** A or B, based on S1 and S7 plus the team's view
 on the Rust layer. Also settle the parser approach (§5) and the CSS style
 format (FR Q7, expected to be CSS).
+
+**Spike done (2026-11-25):** see [spike/RESULTS.md](../spike/RESULTS.md).
+Both shells pass all automated checks. Tauri starts in 0.44 s vs. 0.84 s for
+WPF, and the Lezer-only parser approach works. Both recovered from a real
+hibernate and resume.
+
+**Decision (2026-11-25): A, Tauri 2.**

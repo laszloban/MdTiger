@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="60" viewBox="0 0 240 60">
+  <rect width="240" height="60" rx="8" fill="#f0883e"/>
+  <g fill="#1f2328">
+    <rect x="30" y="0" width="10" height="60" transform="skewX(-15)"/>
+    <rect x="70" y="0" width="10" height="60" transform="skewX(-15)"/>
+    <rect x="110" y="0" width="10" height="60" transform="skewX(-15)"/>
+  </g>
+  <text x="150" y="38" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700" fill="#fff">MdTiger</text>
+</svg>
