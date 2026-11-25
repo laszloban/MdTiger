@@ -207,4 +207,5 @@ Both shells pass all automated checks. Tauri starts in 0.44 s vs. 0.84 s for
 WPF, and the Lezer-only parser approach works. Both recovered from a real
 hibernate and resume.
 
-**Decision (2026-11-25): A, Tauri 2.**
+**Decision (2026-11-25): A, Tauri 2.** Implementation follows
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).

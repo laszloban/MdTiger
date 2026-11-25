@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Draft 0.4 – all open questions answered (§7); ready for the technology decision |
+| **Status** | Draft 0.5 – technology decided (Tauri 2); additions from the spike review (2026-11-25) |
 | **Date** | 2026-11-25 |
 | **Predecessor** | An earlier internal study on extending Zettlr (2026-09/10); not included here |
-| **Next step** | Technology decision, once these requirements are accepted |
+| **Next step** | Implementation, see [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) |
 
 ## 1. Purpose and background
 
@@ -93,9 +93,9 @@ must leave room for it.
 | FR-EDIT-02 | M | **Source mode**: plain Markdown with syntax highlighting. |
 | FR-EDIT-03 | S | **Side-by-side mode**: source and rendered views next to each other, with synchronized scrolling. |
 | FR-EDIT-04 | Phase 2 | **Live preview / WYSIWYG mode**: edit directly in the rendered view, the way Zettlr does (the current line shows raw Markdown, other lines are rendered). It isn't part of phase 1, but **the phase-1 architecture must not rule it out**. See NFR-09 and §7.1 Q2. |
-| FR-EDIT-05 | M | Switch between modes with one click or keystroke, keeping the position in the document. |
+| FR-EDIT-05 | M | Switch between modes with one click or keystroke, keeping the position in the document. The button of the active mode **stays visibly activated** (pressed look, accent color), so the current mode is always obvious. |
 | FR-EDIT-06 | M | Standard editing: undo/redo (multi-level), clipboard, find (FR-SEARCH-01), replace (FR-SEARCH-03), go to line. |
-| FR-EDIT-07 | S | A formatting toolbar: heading level, bold, italic, inline code, code block, link, bulleted/numbered/task list, quote, table, horizontal rule. Every action also has a keyboard shortcut. |
+| FR-EDIT-07 | M | A formatting toolbar: heading level, bold, italic, inline code, code block, link, bulleted/numbered/task list, quote, table, horizontal rule. Every action also has a keyboard shortcut. |
 | FR-EDIT-08 | S | Smart list continuation: pressing Enter in a list continues it, and Tab/Shift+Tab indents and outdents. |
 | FR-EDIT-09 | C | Spell checking (English and Hungarian), off by default. |
 | FR-EDIT-10 | M | **Clickable task-list checkboxes:** GitHub-style task items (`- [ ] item`, `- [x] item`, including nested and numbered ones such as `1. [ ] item`) are shown as real checkboxes in Rendered, Side-by-side and (later) Live preview modes. Clicking one ticks or unticks it, and only the `[ ]` ↔ `[x]` character changes in the source (FR-FILE-03). Each click is one undo step, the document is marked as having unsaved changes, and the outline and scroll position stay put. Both `[x]` and `[X]` count as ticked, and the existing case is kept when unticking and ticking again. |
@@ -168,7 +168,7 @@ must leave room for it.
 
 | ID | Pri | Requirement |
 |---|---|---|
-| FR-STYLE-01 | M | Built-in light and dark themes, which can follow the OS setting. |
+| FR-STYLE-01 | M | Built-in light and dark themes. The choice is **Light, Dark or Follow system**. *Follow system* is the default and switches live when the Windows setting changes, including the window title bar. |
 | FR-STYLE-02 | M | Headings H1–H6 look clearly different from each other (size, weight, spacing, optionally rule lines). This is the original complaint about Zettlr's flat heading styling. |
 | FR-STYLE-03 | S | Several built-in rendering styles to choose from, e.g. "GitHub-like", "Document/print-like" and "Compact". |
 | FR-STYLE-04 | S | User-defined custom styles that override the built-in ones, and can be shared across the team as files. The format (CSS, or a theme file for colors, fonts, sizes and spacing) follows the chosen technology (§7 Q7). Either way, a style must at least be able to set heading appearance (FR-STYLE-02), fonts, colors, and the look of code blocks and tables. |
@@ -199,6 +199,7 @@ must leave room for it.
 | FR-APP-03 | S | Keyboard shortcuts can be customized. |
 | FR-APP-04 | S | The app remembers window size and position, sidebar state and the last mode used. |
 | FR-APP-05 | M | **Default Markdown application:** the installer registers MdTiger for `.md` and `.markdown`. On startup, if MdTiger isn't the default handler, it asks whether to become the default. Answers are *Yes*, *Not now* and *Don't ask again*, and the check can be turned back on in Settings. Because Windows doesn't let apps set the default silently, *Yes* opens the system's default-app dialog for those extensions. |
+| FR-APP-06 | M | The app uses the MdTiger tiger icon (`assets/icon/`) for the executable, window, taskbar, installer and the `.md` file association. |
 
 ## 4. Non-functional requirements
 
