@@ -1,0 +1,164 @@
+/* All colors are custom properties. One light set for now; S08 adds the dark
+   set and the theme switch. No hard-coded colors in components. */
+:root {
+  --accent: #d9731f;
+  --bg: #ffffff;
+  --bg-chrome: #f4f4f5;
+  --bg-sidebar: #f9f9fa;
+  --fg: #1f2328;
+  --fg-muted: #6b7280;
+  --border: #dcdfe3;
+
+  --font-ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-size-ui: 13px;
+  --toolbar-height: 36px;
+  --tabs-height: 32px;
+  --status-height: 24px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: var(--font-size-ui) / 1.4 var(--font-ui);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+#layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#toolbar {
+  flex: none;
+  min-height: var(--toolbar-height);
+  background: var(--bg-chrome);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+#tabs {
+  flex: none;
+  min-height: var(--tabs-height);
+  background: var(--bg-chrome);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+}
+
+#main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+#outline {
+  flex: none;
+  width: var(--outline-width, 260px);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  overflow: auto;
+}
+
+.outline-title {
+  padding: 8px 12px;
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#banner {
+  flex: none;
+  padding: 6px 12px;
+  background: var(--bg-chrome);
+  border-bottom: 1px solid var(--border);
+}
+
+#content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+#empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+.empty-logo {
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.empty-title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--fg);
+}
+
+.empty-hint {
+  margin: 0;
+}
+
+kbd {
+  font: 12px var(--font-ui);
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg-chrome);
+  color: var(--fg);
+}
+
+#status {
+  flex: none;
+  height: var(--status-height);
+  line-height: calc(var(--status-height) - 1px);
+  padding: 0 12px;
+  background: var(--bg-chrome);
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

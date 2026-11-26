@@ -16,7 +16,7 @@ checked it; then it is committed and pushed.
 
 | Step | Title | Status | Commit | Open issues raised |
 |---|---|---|---|---|
-| [S01](steps/S01-foundation.md) | Foundation: project, shell, test harness | Not started | | |
+| [S01](steps/S01-foundation.md) | Foundation: project, shell, test harness | Verified | | 5 (S01-1 to S01-5), all decided |
 | [S02](steps/S02-files-and-tabs.md) | Files and tabs | Not started | | |
 | [S03](steps/S03-source-editor.md) | Source editor, find and replace | Not started | | |
 | [S04](steps/S04-rendered-view-and-modes.md) | Rendered view and modes | Not started | | |
@@ -158,11 +158,13 @@ Decided or deferred items from the steps land here after each verification.
 
 | ID | Issue | Raised | Status |
 |---|---|---|---|
-| OI-01 | Licence for the public repo. | plan | **Decided:** MIT (S01). |
+| OI-01 | Licence for the public repo. | plan | **Decided:** MIT (S01). Copyright holder in `LICENSE`: "MdTiger contributors". |
 | OI-02 | Formatting toolbar in Rendered mode. | plan | **Decided:** disabled there, with a tooltip saying to switch to Source or Split (S07). |
 | OI-03 | Code signing for the installer and exe. | plan | **Decided:** ship unsigned (SmartScreen warns until the download builds reputation); apply to the SignPath Foundation open-source programme after a few releases and add signing to the S12 release workflow then. |
 | OI-04 | Distribution channel (NFR-05). | plan | **Decided:** GitHub Releases and winget (S12). |
 | OI-05 | CI. | plan | **Decided:** GitHub Actions on `windows-latest`, running `npm run check` without the end-to-end suites (S01 sets it up; S12 adds the release build). |
+| OI-06 | Files with invalid UTF-8 bytes (the shell reads them lossily, bytes become U+FFFD). | S01-4 | **Decided:** when such a document is saved, show a notification that the invalid bytes were replaced (S02). |
+| OI-07 | End-to-end tests need every real MdTiger closed (single instance). | S01-5 | **Decided:** accepted; the helper says "close MdTiger first". |
 
 ## 8. Requirement coverage
 
