@@ -9,6 +9,32 @@ export function createTauriHost(): Host {
     readFile: (path) => invoke<FileData>("read_file", { path }),
     writeFile: (path, text, bom) => invoke<{ mtime: number }>("write_file", { path, text, bom }),
     stat: (path) => invoke<{ mtime: number } | null>("stat_file", { path }),
+    pickFiles: () => invoke<string[]>("pick_files"),
+    pickSavePath: (defaultName) => invoke<string | null>("pick_save_path", { defaultName }),
+    setTitle(title) {
+      void invoke("set_title", { title }).catch(() => {});
+    },
+    testMode: () => invoke<boolean>("is_test_mode"),
+    onCloseRequest(handler) {
+      void listen("close-requested", async () => {
+        // Tell the shell the page is alive, and keep telling it while the
+        // user decides: silence means a frozen page and the shell closes anyway.
+        void invoke("close_ack").catch(() => {});
+        const beat = setInterval(() => void invoke("close_ack").catch(() => {}), 1000);
+        let allow = false;
+        try {
+          allow = await handler();
+        } catch {
+          allow = true; // a broken handler must not make the window unclosable
+        } finally {
+          clearInterval(beat);
+        }
+        await invoke("close_response", { allow }).catch(() => {});
+      });
+    },
+    draftGet: (key) => invoke<string | null>("draft_read", { key }),
+    draftSet: (key, value) => invoke<void>("draft_write", { key, value }),
+    draftRemove: (key) => invoke<void>("draft_clear", { key }),
     onEvent(handler) {
       void listen<HostEvent>("host-event", (e) => handler(e.payload));
     },

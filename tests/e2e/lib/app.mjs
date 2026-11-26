@@ -143,6 +143,8 @@ const NAMED_KEYS = {
   ArrowUp: { code: "ArrowUp", vk: 38 },
   ArrowRight: { code: "ArrowRight", vk: 39 },
   ArrowDown: { code: "ArrowDown", vk: 40 },
+  PageUp: { code: "PageUp", vk: 33 },
+  PageDown: { code: "PageDown", vk: 34 },
   Home: { code: "Home", vk: 36 },
   End: { code: "End", vk: 35 },
   Space: { code: "Space", vk: 32, key: " " },
@@ -227,6 +229,7 @@ export async function launchApp({ files = [], env = {}, profile, waitForPage = t
   running.add(child);
   child.on("exit", () => running.delete(child));
   let cdp = null;
+  let primed = false;
 
   const app = {
     profile: profileDir,
@@ -280,7 +283,22 @@ export async function launchApp({ files = [], env = {}, profile, waitForPage = t
       await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...k });
     },
 
+    /** The first mouse press into a window that has no focus only focuses it
+     *  (the page never sees it). Prime the window with a harmless press in the
+     *  top-left corner of the toolbar. */
+    async focusWindow() {
+      if (primed) return; // document.hasFocus() is not reliable here: prime once per launch
+      primed = true;
+      await cdp.send("Page.bringToFront").catch(() => {});
+      const base = { x: 2, y: 2, button: "left", clickCount: 1 };
+      await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 2, y: 2 });
+      await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", ...base });
+      await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", ...base });
+      await sleep(100);
+    },
+
     async click(selector) {
+      await app.focusWindow();
       const box = await app.eval(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) return null; e.scrollIntoView({block:'center'}); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
       if (!box) throw new Error(`no element matches ${selector}`);
       const base = { x: box.x, y: box.y, button: "left", clickCount: 1 };
@@ -288,6 +306,28 @@ export async function launchApp({ files = [], env = {}, profile, waitForPage = t
       await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", ...base });
       await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", ...base });
     },
+
+    /** Drags with the mouse from the center of one element to a point relative to another. */
+    async drag(fromSelector, toSelector, { toEdge = "right" } = {}) {
+      const rect = (sel) => app.eval(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; })()`);
+      await app.focusWindow();
+      const f = await rect(fromSelector);
+      const t = await rect(toSelector);
+      if (!f || !t) throw new Error(`drag: missing ${fromSelector} or ${toSelector}`);
+      const x0 = (f.l + f.r) / 2;
+      const y = (f.t + f.b) / 2;
+      const x1 = toEdge === "right" ? t.r - 4 : t.l + 4;
+      await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: x0, y });
+      await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: x0, y, button: "left", clickCount: 1 });
+      const steps = 12;
+      for (let i = 1; i <= steps; i++) {
+        await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: x0 + ((x1 - x0) * i) / steps, y, button: "left", buttons: 1 });
+      }
+      await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: x1, y, button: "left", clickCount: 1 });
+    },
+
+    /** Raw DevTools Protocol call (for tests that freeze or inspect the page). */
+    cdp: (method, params) => cdp.send(method, params),
 
     /** Types text as key presses into the focused element. */
     async type(text) {

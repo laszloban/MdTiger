@@ -16,6 +16,8 @@ export interface Command {
   label: string;
   /** Default shortcut, e.g. "Mod-o". */
   shortcut?: string;
+  /** More shortcuts for the same command, e.g. "Mod-PageDown". */
+  altShortcuts?: string[];
   run: () => void | Promise<void>;
   enabled?: () => boolean;
 }
@@ -91,7 +93,7 @@ export function matchesShortcut(p: ParsedShortcut, e: KeyboardEvent): boolean {
 
 export class CommandRegistry {
   private readonly commands = new Map<string, Command>();
-  private readonly shortcuts = new Map<string, ParsedShortcut>();
+  private readonly shortcuts = new Map<string, ParsedShortcut[]>();
 
   constructor(private readonly isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform)) {}
 
@@ -99,7 +101,8 @@ export class CommandRegistry {
     if (this.commands.has(command.id)) log.warn(`command "${command.id}" registered twice; the later one wins`);
     this.commands.set(command.id, command);
     this.shortcuts.delete(command.id);
-    if (command.shortcut) this.shortcuts.set(command.id, parseShortcut(command.shortcut, this.isMac));
+    const all = [...(command.shortcut ? [command.shortcut] : []), ...(command.altShortcuts ?? [])];
+    if (all.length) this.shortcuts.set(command.id, all.map((s) => parseShortcut(s, this.isMac)));
   }
 
   list(): Command[] {
@@ -134,8 +137,8 @@ export class CommandRegistry {
 
   /** The command whose shortcut matches this key event, if any. */
   find(e: KeyboardEvent): Command | undefined {
-    for (const [id, p] of this.shortcuts) {
-      if (matchesShortcut(p, e)) return this.commands.get(id);
+    for (const [id, list] of this.shortcuts) {
+      if (list.some((p) => matchesShortcut(p, e))) return this.commands.get(id);
     }
     return undefined;
   }

@@ -14,13 +14,13 @@ export function createBrowserHost(): Host {
       return q ? [q] : [];
     },
     async readFile(path) {
-      if (written.has(path)) return { text: written.get(path)!, bom: false, mtime: Date.now() };
+      if (written.has(path)) return { text: written.get(path)!, bom: false, lossy: false, mtime: Date.now() };
       const r = await fetch("./" + path.replace(/\\/g, "/"));
       if (!r.ok) throw new Error(`HTTP ${r.status} for ${path}`);
       const buf = new Uint8Array(await r.arrayBuffer());
       const bom = buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf;
       const text = new TextDecoder().decode(bom ? buf.subarray(3) : buf);
-      return { text, bom, mtime: Date.now() };
+      return { text, bom, lossy: false, mtime: Date.now() };
     },
     async writeFile(path, text) {
       written.set(path, text);
@@ -28,6 +28,28 @@ export function createBrowserHost(): Host {
     },
     async stat() {
       return { mtime: 0 };
+    },
+    async pickFiles() {
+      return [];
+    },
+    async pickSavePath() {
+      return null;
+    },
+    setTitle(title) {
+      document.title = title;
+    },
+    async testMode() {
+      return false;
+    },
+    onCloseRequest() {},
+    async draftGet(key) {
+      return localStorage.getItem(key);
+    },
+    async draftSet(key, value) {
+      localStorage.setItem(key, value);
+    },
+    async draftRemove(key) {
+      localStorage.removeItem(key);
     },
     onEvent() {},
     async settingsRead() {

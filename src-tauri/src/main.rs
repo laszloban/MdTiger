@@ -3,6 +3,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod drafts;
 mod files;
 mod logging;
 mod profile;
@@ -24,7 +25,15 @@ pub struct AppState {
     /// Paths from the command line, resolved. Same list on every call.
     pub initial: Vec<String>,
     shown: AtomicBool,
+    /// A window close is waiting for the front end (it may be showing a dialog).
+    close_pending: AtomicBool,
+    /// The front end has acknowledged the close request (it is alive).
+    close_acked: AtomicBool,
 }
+
+/// If the front end doesn't acknowledge a close request within this time, the
+/// page is considered dead and the window closes anyway (drafts keep the text).
+const CLOSE_ACK_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Shows the main window once (idempotent).
 fn show_main(app: &AppHandle) {
@@ -50,6 +59,80 @@ fn app_ready(app: AppHandle, state: State<AppState>, ms_since_navigation: f64) {
 #[tauri::command]
 fn log_msg(level: String, message: String) {
     logging::log(&level, &message);
+}
+
+#[tauri::command]
+fn set_title(window: tauri::WebviewWindow, title: String) {
+    let _ = window.set_title(&title);
+}
+
+#[tauri::command]
+fn is_test_mode() -> bool {
+    std::env::var("MDTIGER_TEST").map(|v| v == "1").unwrap_or(false)
+}
+
+/// The front end is alive and handling the close request (sent once a second).
+#[tauri::command]
+fn close_ack(state: State<AppState>) {
+    state.close_acked.store(true, Ordering::SeqCst);
+}
+
+/// The front end's answer: close the window, or keep it open.
+#[tauri::command]
+fn close_response(window: tauri::WebviewWindow, state: State<AppState>, allow: bool) {
+    state.close_pending.store(false, Ordering::SeqCst);
+    if allow {
+        logging::info("window close confirmed by the front end");
+        let _ = window.destroy();
+    } else {
+        logging::info("window close cancelled by the user");
+    }
+}
+
+fn on_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    use tauri::{DragDropEvent, WindowEvent};
+    match event {
+        WindowEvent::CloseRequested { api, .. } => {
+            let app = window.app_handle();
+            let state = app.state::<AppState>();
+            // Before the front end is up there is nothing to ask.
+            if !state.shown.load(Ordering::SeqCst) {
+                return;
+            }
+            api.prevent_close();
+            if state.close_pending.swap(true, Ordering::SeqCst) {
+                logging::info("close requested again while the front end is still deciding");
+                return; // already asking
+            }
+            logging::info("close requested, asking the front end");
+            state.close_acked.store(false, Ordering::SeqCst);
+            let _ = app.emit("close-requested", ());
+            let window = window.clone();
+            // The page may show a dialog for as long as the user needs, but it
+            // must keep saying it is alive (close_ack, once a second). Three
+            // silent seconds mean a dead or frozen page: close anyway.
+            std::thread::spawn(move || loop {
+                std::thread::sleep(CLOSE_ACK_TIMEOUT);
+                let state = window.app_handle().state::<AppState>();
+                if !state.close_pending.load(Ordering::SeqCst) {
+                    return;
+                }
+                if !state.close_acked.swap(false, Ordering::SeqCst) {
+                    logging::warn("front end did not answer the close request in 3 s, closing anyway");
+                    let _ = window.destroy();
+                    return;
+                }
+            });
+        }
+        WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
+            for p in paths {
+                let path = p.to_string_lossy().into_owned();
+                logging::info(&format!("drop event: {path}"));
+                let _ = window.app_handle().emit("host-event", json!({ "type": "drop", "path": path }));
+            }
+        }
+        _ => {}
+    }
 }
 
 /// Only registered when MDTIGER_TEST=1: lets the tests check the panic hook.
@@ -84,7 +167,9 @@ fn main() {
                 let _ = w.set_focus();
             }
         }))
-        .manage(AppState { started, initial, shown: AtomicBool::new(false) })
+        .plugin(tauri_plugin_dialog::init())
+        .on_window_event(on_window_event)
+        .manage(AppState { started, initial, shown: AtomicBool::new(false), close_pending: AtomicBool::new(false), close_acked: AtomicBool::new(false) })
         .setup(|app| {
             // Created in code (not in tauri.conf.json) so the WebView data
             // folder can be set. Hidden until the front end reports "ready".
@@ -122,6 +207,15 @@ fn main() {
             files::read_file,
             files::write_file,
             files::stat_file,
+            drafts::draft_write,
+            drafts::draft_read,
+            drafts::draft_clear,
+            files::pick_files,
+            files::pick_save_path,
+            set_title,
+            is_test_mode,
+            close_ack,
+            close_response,
             settings::settings_read,
             settings::settings_write,
             log_msg,
@@ -134,6 +228,15 @@ fn main() {
             files::read_file,
             files::write_file,
             files::stat_file,
+            drafts::draft_write,
+            drafts::draft_read,
+            drafts::draft_clear,
+            files::pick_files,
+            files::pick_save_path,
+            set_title,
+            is_test_mode,
+            close_ack,
+            close_response,
             settings::settings_read,
             settings::settings_write,
             log_msg,

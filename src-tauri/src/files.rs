@@ -17,6 +17,9 @@ pub struct FileData {
     /// Decoded text, without the BOM. Line endings are kept as they are.
     pub text: String,
     pub bom: bool,
+    /// True if the file was not valid UTF-8: the invalid bytes were replaced
+    /// with U+FFFD, so saving the text back would change the file.
+    pub lossy: bool,
     /// Last write time, milliseconds since the Unix epoch.
     pub mtime: f64,
 }
@@ -51,8 +54,12 @@ pub fn files_from_args(args: &[String], cwd: &Path) -> Vec<String> {
 pub fn read(path: &Path) -> Result<FileData, String> {
     let bytes = fs::read(path).map_err(|e| e.to_string())?;
     let bom = bytes.starts_with(&BOM);
-    let text = String::from_utf8_lossy(if bom { &bytes[3..] } else { &bytes[..] }).into_owned();
-    Ok(FileData { text, bom, mtime: mtime_of(path)? })
+    let body = if bom { &bytes[3..] } else { &bytes[..] };
+    let (text, lossy) = match std::str::from_utf8(body) {
+        Ok(t) => (t.to_owned(), false),
+        Err(_) => (String::from_utf8_lossy(body).into_owned(), true),
+    };
+    Ok(FileData { text, bom, lossy, mtime: mtime_of(path)? })
 }
 
 /// Writes through a temp file in the same folder and renames it over the
@@ -75,6 +82,35 @@ pub fn write_atomic(target: &Path, text: &str, bom: bool) -> Result<f64, String>
         return Err(e.to_string());
     }
     mtime_of(target)
+}
+
+/// Native Open dialog (Markdown filter, multi-select). Empty if cancelled.
+#[tauri::command]
+pub async fn pick_files(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Vec<String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .add_filter("Markdown", &["md", "markdown"])
+        .add_filter("All files", &["*"])
+        .blocking_pick_files()
+        .unwrap_or_default();
+    picked.into_iter().filter_map(|p| p.into_path().ok()).map(|p| p.to_string_lossy().into_owned()).collect()
+}
+
+/// Native Save As dialog. None if cancelled.
+#[tauri::command]
+pub async fn pick_save_path(app: tauri::AppHandle, window: tauri::WebviewWindow, default_name: String) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    app.dialog()
+        .file()
+        .set_parent(&window)
+        .set_file_name(default_name)
+        .add_filter("Markdown", &["md", "markdown"])
+        .blocking_save_file()
+        .and_then(|p| p.into_path().ok())
+        .map(|p| p.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -143,7 +179,18 @@ mod tests {
         fs::write(&target, "plain\n").unwrap();
         let data = read(&target).unwrap();
         assert!(!data.bom);
+        assert!(!data.lossy);
         assert_eq!(data.text, "plain\n");
+    }
+
+    #[test]
+    fn invalid_utf8_is_read_lossily_and_flagged() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("l.md");
+        fs::write(&target, [b'a', 0xE1, b'b']).unwrap(); // Latin-2 a-acute
+        let data = read(&target).unwrap();
+        assert!(data.lossy);
+        assert_eq!(data.text, "a\u{FFFD}b");
     }
 
     #[test]

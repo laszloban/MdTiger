@@ -1,11 +1,19 @@
-// Bootstrap only: pick the host, load settings, build the layout, report ready.
+// Bootstrap only: pick the host, load settings, build the layout, wire the
+// workspace, report ready.
 
 import "./styles/base.css";
 import { commands } from "./core/commands";
 import { installLogging, log } from "./core/log";
+import { isMarkdownPath, fileName } from "./core/paths";
 import { SettingsStore } from "./core/settings";
+import { Workspace, type CloseChoice } from "./core/workspace";
 import { detectHost } from "./host";
+import type { HostEvent } from "./host/host";
+import { showDialog, isDialogOpen } from "./ui/dialog";
 import { buildLayout } from "./ui/layout";
+import { createMenu } from "./ui/menu";
+import { mountTabs } from "./ui/tabs";
+import { mountViews } from "./ui/views";
 
 async function main(): Promise<void> {
   const host = await detectHost();
@@ -15,8 +23,45 @@ async function main(): Promise<void> {
   await settings.load();
 
   const layout = buildLayout(document.getElementById("app")!, settings);
-  layout.showEmptyState(true);
+  const testMode = await host.testMode();
+  const overrides = testMode ? { nextPickPath: null as string[] | null, nextSavePath: null as string | null } : undefined;
 
+  const ws = new Workspace({
+    host,
+    drafts: { get: (k) => host.draftGet(k), set: (k, v) => host.draftSet(k, v), remove: (k) => host.draftRemove(k) },
+    session: sessionStorage,
+    hint: (t) => layout.setStatus(t),
+    notify: (t) => layout.notify(t),
+    overrides,
+    async confirmClose(doc, othersDirty): Promise<CloseChoice> {
+      const buttons: { id: CloseChoice; label: string; primary?: boolean }[] = [{ id: "save", label: "Save", primary: true }];
+      if (othersDirty > 0) buttons.push({ id: "saveAll", label: "Save all" });
+      buttons.push({ id: "discard", label: "Don't save" }, { id: "cancel", label: "Cancel" });
+      return showDialog<CloseChoice>({
+        title: "Unsaved changes",
+        message: `Save changes to ${doc.title}?`,
+        buttons,
+        cancelId: "cancel",
+      });
+    },
+  });
+
+  mountTabs(layout.tabs, ws);
+  mountViews(layout, ws, host);
+
+  // ---- commands (a dialog freezes them all: they are disabled while it shows)
+  const idle = () => !isDialogOpen();
+  const hasDoc = () => idle() && !!ws.active;
+  commands.register({ id: "file.new", label: "New", shortcut: "Mod-n", enabled: idle, run: () => void ws.newDoc() });
+  commands.register({ id: "file.open", label: "Open…", shortcut: "Mod-o", enabled: idle, run: () => ws.openDialog() });
+  commands.register({ id: "file.save", label: "Save", shortcut: "Mod-s", enabled: hasDoc, run: async () => void (await ws.save()) });
+  commands.register({ id: "file.saveAs", label: "Save as…", shortcut: "Mod-Shift-s", enabled: hasDoc, run: async () => void (await ws.saveAs()) });
+  commands.register({ id: "tab.close", label: "Close tab", shortcut: "Mod-w", altShortcuts: ["Mod-F4"], enabled: hasDoc, run: () => void ws.closeActive() });
+  commands.register({ id: "tab.closeAll", label: "Close all tabs", enabled: hasDoc, run: () => void ws.closeAll() });
+  commands.register({ id: "tab.closeOthers", label: "Close other tabs", enabled: () => idle() && ws.docs.length > 1, run: () => void ws.closeOthers() });
+  const multi = () => idle() && ws.docs.length > 1;
+  commands.register({ id: "tab.next", label: "Next tab", shortcut: "Mod-Tab", altShortcuts: ["Mod-PageDown"], enabled: multi, run: () => ws.cycle(1) });
+  commands.register({ id: "tab.prev", label: "Previous tab", shortcut: "Mod-Shift-Tab", altShortcuts: ["Mod-PageUp"], enabled: multi, run: () => ws.cycle(-1) });
   commands.register({
     id: "app.about",
     label: "About MdTiger",
@@ -25,15 +70,62 @@ async function main(): Promise<void> {
   });
   commands.attach(document);
 
-  host.onEvent((e) => log.info(`host event: ${e.type} ${e.path}`));
+  createMenu(layout.toolbar, commands, [
+    { command: "file.new" },
+    { command: "file.open" },
+    { command: "file.save", separator: true },
+    { command: "file.saveAs" },
+    { command: "tab.close", separator: true },
+    { command: "tab.closeOthers" },
+    { command: "tab.closeAll" },
+    { command: "app.about", separator: true },
+  ], { id: "app-menu", label: "Menu" });
 
-  // Don't lose a pending setting change when the window goes away.
+  // ---- host events: second instance, drag and drop, window close
+  const handleHostEvent = (e: HostEvent) => {
+    log.info(`host event: ${e.type} ${e.path}`);
+    // A file named by another launch is opened as asked; a dropped one must be Markdown.
+    if (e.type === "open" || isMarkdownPath(e.path)) void ws.open(e.path);
+    else layout.setStatus(`Not a Markdown file: ${fileName(e.path)}`);
+  };
+  host.onEvent(handleHostEvent);
+  host.onCloseRequest(async () => {
+    const ok = await ws.confirmWindowClose();
+    if (ok) for (const d of ws.docs) ws.flushDraft(d); // nothing pending is lost
+    return ok;
+  });
+
+  // Don't lose a pending setting change or draft when the window goes away.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") void settings.flush();
+    if (document.visibilityState === "hidden") {
+      void settings.flush();
+      for (const d of ws.docs) if (d.draftTimer) ws.flushDraft(d);
+    }
   });
 
   // Handle for the end-to-end tests and the developer console.
-  (window as unknown as { __mdtiger: unknown }).__mdtiger = { host, settings, commands, layout };
+  const handle: Record<string, unknown> = {
+    host,
+    settings,
+    commands,
+    layout,
+    workspace: ws,
+    get docs() {
+      return ws.snapshot();
+    },
+  };
+  if (testMode) {
+    handle.testHooks = overrides;
+    // Simulates a host event (a drop or a second instance) without the OS.
+    handle.emitHostEvent = handleHostEvent;
+  }
+  (window as unknown as { __mdtiger: unknown }).__mdtiger = handle;
+
+  // ---- what to open: the tabs of this page's previous life (renderer
+  // restart), else the command-line files; the last one is active.
+  if (!(await ws.restoreSession())) {
+    await ws.openMany(await host.initialFiles());
+  }
 
   // "Ready" = first frame painted: two animation frames.
   requestAnimationFrame(() =>

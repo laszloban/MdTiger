@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.0 – S01 verified, ready to start S02 |
+| **Status** | v1.0 – S01 verified, S02 awaiting verification |
 | **Date** | 2026-11-25 |
 | **What to build** | [FUNCTIONAL_REQUIREMENTS.md](FUNCTIONAL_REQUIREMENTS.md) (Draft 0.5) |
 | **Technology** | Tauri 2 + one TypeScript front end, decided after the [spike](../spike/RESULTS.md) |
@@ -17,7 +17,7 @@ checked it; then it is committed and pushed.
 | Step | Title | Status | Commit | Open issues raised |
 |---|---|---|---|---|
 | [S01](steps/S01-foundation.md) | Foundation: project, shell, test harness | Verified | a511c3a | 5 (S01-1 to S01-5), all decided |
-| [S02](steps/S02-files-and-tabs.md) | Files and tabs | Not started | | |
+| [S02](steps/S02-files-and-tabs.md) | Files and tabs | Done, awaiting verification | | 8 (S02-01 to S02-08; S02-05 to S02-08 still open) |
 | [S03](steps/S03-source-editor.md) | Source editor, find and replace | Not started | | |
 | [S04](steps/S04-rendered-view-and-modes.md) | Rendered view and modes | Not started | | |
 | [S05](steps/S05-rich-content.md) | Rich content: code blocks, Mermaid, images, links, checkboxes | Not started | | |

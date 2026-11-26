@@ -16,7 +16,11 @@
     "check:ci": "npm run typecheck && npm test && tauri build --no-bundle && cargo test --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.12.5"
+    "@codemirror/commands": "^6.11.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.44.0",
+    "@tauri-apps/api": "^2.12.5",
+    "lucide": "^1.81.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.6",

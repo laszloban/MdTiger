@@ -15,8 +15,10 @@ export interface Layout {
   content: HTMLElement;
   emptyState: HTMLElement;
   status: HTMLElement;
-  /** Shows a short non-blocking message in the status bar. */
+  /** Shows a short non-blocking message in the status bar (clears itself). */
   setStatus(text: string): void;
+  /** Shows a non-blocking notification that goes away by itself. */
+  notify(text: string): void;
   /** Shows or hides the empty state (shown while no document is open). */
   showEmptyState(visible: boolean): void;
 }
@@ -27,6 +29,9 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, id?: string, classNam
   if (className) e.className = className;
   return e;
 }
+
+const STATUS_MS = 10_000;
+const TOAST_MS = 10_000;
 
 export function buildLayout(host: HTMLElement, settings: Pick<SettingsStore, "get" | "onChange">): Layout {
   const root = el("div", "layout");
@@ -66,10 +71,16 @@ export function buildLayout(host: HTMLElement, settings: Pick<SettingsStore, "ge
   column.append(banner, content);
   main.append(outline, column);
 
+  let statusTimer: ReturnType<typeof setTimeout> | null = null;
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
   const status = el("footer", "status");
   status.setAttribute("role", "status");
 
-  root.append(toolbar, tabs, main, status);
+  const toast = el("div", "toast");
+  toast.setAttribute("role", "status");
+  toast.hidden = true;
+
+  root.append(toolbar, tabs, main, status, toast);
   host.append(root);
 
   const applyOutline = () => {
@@ -91,6 +102,16 @@ export function buildLayout(host: HTMLElement, settings: Pick<SettingsStore, "ge
     status,
     setStatus(text) {
       status.textContent = text;
+      if (statusTimer) clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => {
+        if (status.textContent === text) status.textContent = "";
+      }, STATUS_MS);
+    },
+    notify(text) {
+      toast.textContent = text;
+      toast.hidden = false;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => (toast.hidden = true), TOAST_MS);
     },
     showEmptyState(visible) {
       emptyState.hidden = !visible;

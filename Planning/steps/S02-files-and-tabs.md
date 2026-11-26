@@ -160,7 +160,13 @@ tükörfúrógép), `latin2.md` (not UTF-8, for the lossy path).
 - Ctrl+O shows the native dialog with the Markdown filter; multi-select
   opens all.
 - Close the window with a dirty tab → the dialog appears; with the
-  renderer frozen (not killed) the window still closes within ~3 s.
+  renderer frozen (not killed) the window still closes within ~3-6 s (e2e
+  test 13 covers this too).
+- On the real keyboard: Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn/PgUp, Ctrl+W,
+  Ctrl+N, Ctrl+S, Ctrl+Shift+S work (S02-06). Type Hungarian text (áéíóöőúüű),
+  save: the file stays UTF-8.
+- Save As: the native dialog opens with the tab's name; a name without an
+  extension gets `.md`.
 
 ## 5. Done when
 
@@ -169,13 +175,115 @@ open issues are listed below.
 
 ## 6. Implementation notes
 
-<!-- Written by the implementing session. -->
+**Result:** `npm run check` passes: typecheck, 41 Vitest tests, 17 `cargo test`
+tests, release build, 23 end-to-end tests (9 from S01, 14 from S02: the 12
+cases of §4.2 plus 4b, 13 and 14). The e2e suites were run twice in a row,
+green both times. The manual checks (§4.3) are left to the user.
+
+**What was built**
+- `src/core/doc.ts` (`Doc`, `detectLineSeparator`), `workspace.ts` (all tab
+  logic: open, activate, reorder, save, save as, close, drafts, session;
+  UI-free, dialogs injected), `drafts.ts`, `paths.ts`.
+- `src/editor/createEditor.ts`: the one place the editor extensions are
+  assembled (line separator facet, history, default keymap, wrapping). S03
+  extends it. The update listener is a per-document extension passed in `extra`.
+- `src/ui/`: `dialog.ts` (in-app modal), `tabs.ts`, `menu.ts` (reusable
+  dropdown, Lucide `Menu` icon), `views.ts` (shows the active editor, banner,
+  window title). `layout.ts` got `notify()` (the `#toast`, 10 s) and
+  `setStatus` now clears itself after 10 s.
+- Shell: `read_file` reports `lossy`; `pick_files` / `pick_save_path` (native
+  dialogs, via the Rust side of `tauri-plugin-dialog`, so no JS package and no
+  capability entry); `set_title`; `is_test_mode`; the window close handshake;
+  the `DragDrop` window event becomes a `drop` host event; `drafts.rs`.
+- Element ids for tests: `#app-menu-button #app-menu`, `.tab .tab-title
+  .tab-dirty .tab-close`, `#dialog #dialog-save #dialog-saveAll
+  #dialog-discard #dialog-cancel`, `#banner-text #banner-use-draft
+  #banner-discard`, `#toast`.
+- Commands: `file.new/open/save/saveAs`, `tab.close/closeAll/closeOthers/next/prev`.
+  `Command` got `altShortcuts` (Ctrl+F4, Ctrl+PgDn/PgUp). All of them are
+  disabled while a dialog is open (they still swallow their key).
+- `window.__mdtiger` now also has `workspace` and `docs` (a snapshot array).
+  With `MDTIGER_TEST=1` it also has `testHooks` (`nextPickPath`,
+  `nextSavePath`) and `emitHostEvent` (simulates a drop, which CDP cannot do).
+  The overrides do not exist in a normal run.
+
+**Deviations and decisions**
+- **Drafts are files, not localStorage** (§3.6 said localStorage). Chromium
+  commits localStorage only after about 5 s, so test 11 (edit, wait 1.5 s, kill
+  the app) cannot pass with it. Drafts now go through
+  `host.draftGet/Set/Remove` to `<profile>\drafts\<fnv64 of key>.json`
+  (`drafts.rs`). The browser dev host still uses localStorage. The session
+  stays in `sessionStorage` as specified; it survives a renderer kill
+  (test 10). See S02-05.
+- **Window close handshake:** the shell prevents the close, emits
+  `close-requested`, and the page replies `close_ack` at once and **once a
+  second while the dialog is open**; `close_response(allow)` ends it. Three
+  silent seconds (a frozen page) close the window anyway. A single ack was not
+  enough: a page that acked and then froze blocked the close forever (found by
+  test 13). Before the first `ready` (window not shown yet) the close goes
+  straight through.
+- **S02-01 (mixed EOL), tested:** `mixed-eol.md` round-trips byte-exact without
+  edits. The first line break decides the separator (CRLF there); the lone LFs
+  stay inside the lines as characters. After typing at the start, the file is
+  the original plus the typed text only, so an edit does **not** normalise the
+  other kind. Pressing Enter inserts the file's own separator (CRLF).
+- **S02-02:** only `.md` / `.markdown` by drop and in the dialog filter (the
+  dialog offers "All files" as a second filter; Markdown is the default).
+  Files named on the command line or by a second instance open whatever they
+  are, because the user asked explicitly.
+- **S02-04 / OI-06:** `latin2.md` opens lossily; saving shows the toast "Saved
+  X. Invalid UTF-8 bytes in the original file were replaced with U+FFFD" and
+  logs `WARN saved with invalid UTF-8 bytes replaced by U+FFFD`. The flag
+  clears after that save (the file is valid UTF-8 now). No dialog, no
+  read-only mode.
+- The window title goes through a `set_title` command (and `document.title`),
+  because a WebView2 page title does not change the native window title.
+- Closing the window with unsaved tabs asks per tab and leaves the tabs open
+  if the user cancels. "Don't save" removes that tab's draft right away.
+- A failed save (no access) gives a status hint and a log line; the tab stays
+  dirty and a close in progress stops.
+- Not done on purpose: Save As onto a path that is open in another tab does
+  not merge the two tabs.
+
+**Gotchas for later steps**
+- **The first mouse press into a window that has no focus is swallowed** (the
+  page never sees `pointerdown`). The e2e helper primes the window once per
+  launch (`app.focusWindow()`, called by `click` and `drag`). Without it, drag
+  and click tests are flaky.
+- Tab reordering uses pointer events, not HTML5 drag and drop: Tauri's
+  `dragDropEnabled` takes over HTML5 DnD on Windows.
+- Each test file must close its app before starting the next one (single
+  instance): the S02 `start()` helper does it. S01's tests close in `after`.
+- Added to `tests/e2e/lib/app.mjs`: `app.drag()`, `app.cdp()`,
+  `app.focusWindow()` and the `PageUp`/`PageDown` keys. The window-close tests
+  send WM_CLOSE with PowerShell's `CloseMainWindow()`; a frozen page is
+  simulated with CDP `Debugger.pause`.
+- `Doc.view` is one `EditorView` per tab, kept alive while the tab is open and
+  detached from the DOM while inactive. `views.ts` saves and restores the scroll
+  position (a detached scroller loses it). "Use draft" calls `view.setState` with
+  a fresh state, so per-document extensions must be re-created there
+  (`Workspace.extensionsFor`); S03 should add its extensions in
+  `createEditorState`.
+- Draft key = normalised path (lower case, backslashes), so two spellings of a
+  path share one draft. Untitled documents use their tab id.
+- `tests/e2e/.tmp/` is git-ignored test output; the stale runs were deleted.
+
+**Dependencies added**
+- npm: `@codemirror/state`, `@codemirror/view`, `@codemirror/commands`,
+  `lucide` (vanilla; imported per icon: `Menu`, `X`).
+- Rust: `tauri-plugin-dialog` 2 (used from Rust only; pulls in `rfd`).
+- Not added: the JS packages of the dialog plugin, `@codemirror/lang-markdown`
+  (S03/S04), `notify` (S10).
 
 ## 7. Open issues
 
 | ID | Issue | Proposal |
 |---|---|---|
-| S02-01 | Files with mixed line endings: CodeMirror splits lines on the one configured separator. Check whether `mixed-eol.md` round-trips byte-exact without edits, and what an edit does to it. | Must be byte-exact without edits. If an edit normalises the other endings, accept it and document it. |
-| S02-02 | Should `.txt` (or any text file) open too, or only `.md` / `.markdown`? | Only Markdown for now. |
-| S02-03 | Non-UTF-8 files are refused. Open as Windows-1250/1252 read-only instead? **Decided:** no codepage detection; such files open lossily (S02-04). |
-| S02-04 | From S01-4 (plan OI-06): the shell reads files lossily (invalid bytes become U+FFFD), and the user decided a notification at save time is enough. This overlaps with the "invalid UTF-8 is refused" rule in §3.3 and S02-03. | **Decided:** open such files and show the notification when they are saved (§3.3, test 6). |
+| S02-01 | ~~Mixed line endings.~~ | **Resolved by test:** byte-exact without edits; an edit does not normalise the other kind (see §6). |
+| S02-02 | ~~Which files open.~~ | **Resolved:** only `.md` / `.markdown` by drop and dialog filter. |
+| S02-03 | Non-UTF-8 files are refused. | **Decided:** no codepage detection; they open lossily (S02-04). |
+| S02-04 | Lossy read. | **Decided and done:** open, then notify on save (§6). |
+| S02-05 | Drafts are files in the profile folder, not localStorage as §3.6 said, because localStorage loses the last ~5 s when the app is killed. | Keep the files and update §3.6 wording. Drafts of files that are never reopened stay in `<profile>\drafts\` (tiny); S10 could delete old ones. |
+| S02-06 | Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+W and Ctrl+N are WebView2 browser accelerators. The e2e tests prove our handler gets the keys (CDP), a real keyboard may differ. | Check by hand (§4.3). If WebView2 eats Ctrl+Tab, Ctrl+PgDn/PgUp are the alternatives. |
+| S02-07 | The app menu has no arrow-key navigation. | Fine for now; S09 (command palette) is the keyboard route. |
+| S02-08 | The OS drag from Explorer cannot be tested over CDP; only the `drop` host event is simulated. | Manual check. |
