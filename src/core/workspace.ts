@@ -3,7 +3,7 @@
 // and the end-to-end hooks drive the same code.
 
 import { EditorView } from "@codemirror/view";
-import { createEditorState, createEditorView } from "../editor/createEditor";
+import { createEditorState, createEditorView, type EditorOptions } from "../editor/createEditor";
 import type { Host } from "../host/host";
 import { Doc, detectLineSeparator, type LineSeparator } from "./doc";
 import {
@@ -38,6 +38,8 @@ export interface WorkspaceDeps {
   notify(text: string): void;
   /** Asks what to do with an unsaved document. `othersDirty` = more unsaved ones follow. */
   confirmClose(doc: Doc, othersDirty: number): Promise<CloseChoice>;
+  /** Editor settings read when a document's editor state is created. */
+  editorOptions?: () => EditorOptions;
   /** Test hooks: bypass the native dialogs. */
   overrides?: { nextPickPath: string[] | null; nextSavePath: string | null };
 }
@@ -109,7 +111,7 @@ export class Workspace {
   }
 
   private makeView(doc: Doc, text: string): void {
-    doc.view = createEditorView(createEditorState(text, doc.lineSeparator, this.extensionsFor(doc)));
+    doc.view = createEditorView(createEditorState(text, doc.lineSeparator, this.extensionsFor(doc), this.d.editorOptions?.()));
   }
 
   // ------------------------------------------------------------------ drafts
@@ -171,7 +173,7 @@ export class Workspace {
     if (draft) {
       doc.bom = draft.bom;
       doc.lineSeparator = draft.lineSeparator;
-      doc.view.setState(createEditorState(draft.text, draft.lineSeparator, this.extensionsFor(doc)));
+      doc.view.setState(createEditorState(draft.text, draft.lineSeparator, this.extensionsFor(doc), this.d.editorOptions?.()));
       this.scheduleDraft(doc);
     }
     this.emit();

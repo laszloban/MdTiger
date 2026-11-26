@@ -7,9 +7,13 @@ import { installLogging, log } from "./core/log";
 import { isMarkdownPath, fileName } from "./core/paths";
 import { SettingsStore } from "./core/settings";
 import { Workspace, type CloseChoice } from "./core/workspace";
+import { SourceFindBackend } from "./editor/find";
 import { detectHost } from "./host";
 import type { HostEvent } from "./host/host";
+import { redo, undo } from "@codemirror/commands";
 import { showDialog, isDialogOpen } from "./ui/dialog";
+import { mountFindBar } from "./ui/findBar";
+import { mountGotoLine } from "./ui/gotoLine";
 import { buildLayout } from "./ui/layout";
 import { createMenu } from "./ui/menu";
 import { mountTabs } from "./ui/tabs";
@@ -33,6 +37,7 @@ async function main(): Promise<void> {
     hint: (t) => layout.setStatus(t),
     notify: (t) => layout.notify(t),
     overrides,
+    editorOptions: () => ({ lineNumbers: settings.get("editor.lineNumbers"), livePreview: settings.get("experimental.livePreview") }),
     async confirmClose(doc, othersDirty): Promise<CloseChoice> {
       const buttons: { id: CloseChoice; label: string; primary?: boolean }[] = [{ id: "save", label: "Save", primary: true }];
       if (othersDirty > 0) buttons.push({ id: "saveAll", label: "Save all" });
@@ -62,6 +67,40 @@ async function main(): Promise<void> {
   const multi = () => idle() && ws.docs.length > 1;
   commands.register({ id: "tab.next", label: "Next tab", shortcut: "Mod-Tab", altShortcuts: ["Mod-PageDown"], enabled: multi, run: () => ws.cycle(1) });
   commands.register({ id: "tab.prev", label: "Previous tab", shortcut: "Mod-Shift-Tab", altShortcuts: ["Mod-PageUp"], enabled: multi, run: () => ws.cycle(-1) });
+  // ---- editing: find, replace, go to line, undo/redo (S03)
+  const activeView = () => ws.active?.view ?? null;
+  const goto = mountGotoLine(layout.dock, activeView, () => find.close(false));
+  const find = mountFindBar(layout.dock, {
+    backend: new SourceFindBackend(activeView),
+    selectedText() {
+      const v = activeView();
+      if (!v) return null;
+      const { from, to } = v.state.selection.main;
+      if (from === to || to - from > 300) return null;
+      const text = v.state.sliceDoc(from, to);
+      return text.includes(String.fromCharCode(10)) || text.includes(String.fromCharCode(13)) ? null : text;
+    },
+    focusEditor: () => activeView()?.focus(),
+    setStatus: (t) => layout.setStatus(t),
+    onOpen: () => goto.close(false),
+  });
+  let lastActive: string | null = null;
+  ws.onChange(() => {
+    if (ws.activeId === lastActive) return;
+    lastActive = ws.activeId;
+    goto.close(false);
+    if (ws.active) find.retarget();
+    else find.close(false);
+  });
+  commands.register({ id: "find.open", label: "Find", shortcut: "Mod-f", enabled: hasDoc, run: () => find.open() });
+  commands.register({ id: "find.replace", label: "Replace", shortcut: "Mod-h", enabled: hasDoc, run: () => find.open({ replace: true }) });
+  commands.register({ id: "find.next", label: "Find next", shortcut: "F3", enabled: hasDoc, run: () => find.next() });
+  commands.register({ id: "find.prev", label: "Find previous", shortcut: "Shift-F3", enabled: hasDoc, run: () => find.prev() });
+  commands.register({ id: "edit.goToLine", label: "Go to line", shortcut: "Mod-g", enabled: hasDoc, run: () => goto.open() });
+  // No shortcuts on undo/redo: CodeMirror owns Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z while the
+  // editor has focus, and a global shortcut would hijack them in the find bar's own fields.
+  commands.register({ id: "edit.undo", label: "Undo", enabled: hasDoc, run: () => { const v = activeView(); if (v) { undo(v); v.focus(); } } });
+  commands.register({ id: "edit.redo", label: "Redo", enabled: hasDoc, run: () => { const v = activeView(); if (v) { redo(v); v.focus(); } } });
   commands.register({
     id: "app.about",
     label: "About MdTiger",

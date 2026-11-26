@@ -136,10 +136,119 @@ All tests pass with `npm run check`, manual checks done, open issues listed.
 
 ## 6. Implementation notes
 
-<!-- Written by the implementing session. -->
+**Result:** `npm run check` passes: typecheck, 62 Vitest tests (21 new), 17 `cargo test` tests, release build, 33 end-to-end tests (9 S01, 14 S02, 10 S03). The e2e suites were run twice in a row (plus the S03 suite twice alone), green each time. The manual checks (§4.3) are left to the user.
+
+**What was built**
+- `src/editor/markdownSupport.ts`: the one place for Lezer Markdown extensions
+  (`lezerMarkdownExtensions`, empty until S04 adds front matter) and the
+  `markdown()` language with `codeLanguages: languages` (lazy loading). The
+  Markdown keymap is added here too (see deviations).
+- `src/editor/createEditor.ts`: `createEditorState(text, sep, extra, options)`
+  now assembles everything: Markdown, `classHighlighter` (plus a second style
+  that adds `tok-h1` to `tok-h6` to headings), wrapping, `drawSelection`,
+  active line, bracket matching, multiple selections, find, optional line
+  numbers and live preview. `options` (`EditorOptions`) come from the new
+  `editorOptions` dependency of `Workspace`, which `main.ts` fills from the
+  settings, so a per-document state is re-created correctly (also by "Use
+  draft").
+- `src/editor/lists.ts`: Tab / Shift+Tab (`listTab`, `listShiftTab`).
+- `src/editor/find.ts`: the `FindBackend` interface, `SourceFindBackend`, and
+  `findExtension()` (query state, match highlighting, change notification).
+- `src/ui/findBar.ts` (the bar, backend-agnostic), `src/ui/gotoLine.ts`
+  (`parseLineSpec` and the bar), `src/editor/livePreview.ts` (ported from the
+  spike).
+- `Layout.dock` (`#dock`, between banner and content) holds both bars; opening
+  one closes the other. Element ids for tests: `#find-bar #find-input
+  #replace-input #find-replace-row #find-count #find-case #find-word
+  #find-regex #find-prev #find-next #find-close #replace-one #replace-all
+  #find-toggle-replace #goto-bar #goto-input`; match classes `.cm-find-match`
+  and `.cm-find-current`.
+- Commands: `find.open` (Ctrl+F), `find.replace` (Ctrl+H), `find.next` (F3),
+  `find.prev` (Shift+F3), `edit.goToLine` (Ctrl+G), `edit.undo`, `edit.redo`.
+- Settings keys added: `editor.lineNumbers` (default false) and
+  `experimental.livePreview` (default false). Both are read when a document's
+  editor is created, so a change needs the document to be reopened (live
+  preview: reload); there is no UI until S09.
+
+**Deviations and decisions**
+- **No CodeMirror search panel.** CodeMirror highlights matches only while its
+  own panel is open, so the bar keeps the query in the editor state
+  (`setSearchQuery`) and the highlighting is ours (`cm-find-match`). `findNext`,
+  `findPrevious`, `replaceNext` and `replaceAll` are CodeMirror's own.
+- **Plain searches are literal** (`SearchQuery.literal` is true unless the
+  regex toggle is on). CodeMirror's default would turn a typed backslash-n into
+  a newline. `$1` to `$9`, `$&` and `$$` work out of the box in regex mode
+  (tested).
+- **Enter on an empty list item ends the list, also in a two-item list.**
+  CodeMirror's default Enter makes a tight two-item list loose instead (it
+  inserts a blank line and keeps the marker). The Markdown keymap is therefore
+  registered by us (`insertNewlineContinueMarkupCommand({ nonTightLists:
+  false })` and `deleteMarkupBackward`) with `addKeymap: false`.
+- **Tab outside a list inserts the indent unit** (two spaces), not a tab
+  character (CodeMirror's `insertTab` would insert a tab); with a selection it
+  indents the lines. In a list the whole item with its children moves; an item
+  is indented by its marker width (`- ` 2, `1. ` 3) so that it really nests.
+  The first item of a list cannot be indented (nothing to nest under), the key
+  does nothing there. Shift+Tab on a top-level item does nothing.
+- **Undo/redo have no registered shortcuts.** CodeMirror owns Ctrl+Z, Ctrl+Y
+  and Ctrl+Shift+Z while the editor has focus; a global shortcut would also
+  fire in the find bar's text fields and undo the document instead of the
+  field. The commands exist for the palette (S09).
+- **Alt+click** adds a cursor; **Alt+Shift+drag** makes a rectangular
+  selection (plain Alt+drag would clash with Alt+click).
+- The counter shows `k of N` when the selection is a match, `N results` when
+  it is not, `No results`, `Invalid regex`; above 10,000 matches `10000+`
+  (e.g. `3 of 10000+`). When the document changes, counting is throttled to
+  once per 150 ms; explicit actions (typing in the field, next/previous)
+  refresh at once.
+- Typing in the search field selects the first match at or after the cursor
+  (incremental search). A change of the active tab re-applies the query to the
+  new editor (`findBar.retarget()`); the old editor keeps its highlight until
+  it is shown again.
+- Ctrl+H does not move focus to the replace field; it opens the row and
+  focuses the search field.
+- Copying is CodeMirror's default (`text/plain` only); test 7 checks the real
+  clipboard formats.
+
+**Gotchas for later steps**
+- `FindBackend` (`src/editor/find.ts`) is what S11 implements for the rendered
+  view. `mountFindBar(dock, { backend, ... })` takes one backend, so S11 needs
+  a backend that switches on the active mode (or a wrapper).
+- Unit tests that call CodeMirror's search commands need a real `EditorView`
+  (happy-dom is enough): `findNext` and friends read the view's plugins.
+  Commands that only use `state` and `dispatch` (the list commands) work on a
+  plain `{ state, dispatch }` holder; see `editing.test.ts`.
+- `syntaxTree(state)` is parsed lazily; unit tests call
+  `ensureSyntaxTree(state, state.doc.length, ms)` after creating a state.
+- `@codemirror/language-data` makes one JS chunk per language in `dist/`
+  (about 40 files); only the chunks a visible block needs are fetched.
+- This suite's `start()` calls `app.focusWindow()` after the launch: without
+  it, the first key press of the first test after a relaunch was lost once
+  (seen in test 2).
+- Typing latency (test 9, 2 MB document, 200 keystrokes 25 ms apart): p90 =
+  32 ms, max 32 ms. The Event Timing API reports multiples of 8 ms and only
+  events of 16 ms or more, so these values are at the floor of what it can
+  report. The test pads the unreported events with zeros.
+- The live-preview extension is created without image resolving
+  (`livePreview((u) => u)`): relative image paths are not resolved against the
+  document yet (S05).
+- Writing source files from a shell heredoc through the agent tooling turned
+  backslash sequences such as backslash-n into real newlines; use the editor
+  tools for files with escapes.
+
+**Dependencies added** (npm; latest at the time, pinned in the lockfile):
+`@codemirror/lang-markdown`, `@codemirror/language`, `@codemirror/language-data`,
+`@codemirror/search`, `@lezer/highlight`, `@lezer/markdown`, `@lezer/common`
+(types only; already a transitive dependency). Lucide icons used:
+`CaseSensitive`, `ChevronDown`, `ChevronRight`, `ChevronUp`, `Regex`,
+`WholeWord`, `X`.
 
 ## 7. Open issues
 
 | ID | Issue | Proposal |
 |---|---|---|
-| | | |
+| S03-01 | `editor.lineNumbers` and `experimental.livePreview` are read when a document's editor is created; changing them in `settings.json` while documents are open has no effect until they are reopened. | Accept for now; S09 (settings UI) reconfigures open editors through a `Compartment`. |
+| S03-02 | No shortcut is registered for Undo/Redo (see notes), so the palette (S09) would list them without a key. Ctrl+Z / Ctrl+Y themselves work (CodeMirror's keymap; confirmed at verification). | S09 shows Ctrl+Z / Ctrl+Y as static text for these two commands. |
+| S03-03 | Ctrl+H opens the replace row but leaves focus in the search field. | **Resolved at verification:** focus in the search field is right; a single Tab now moves to the replace field (Shift+Tab back), see e2e test 4. |
+| S03-04 | The highlight in a tab you left stays until the tab is shown again. | Accept. |
+| S03-05 | Indenting the first item of a list does nothing, and so does Shift+Tab on a top-level item. | Accept (what most Markdown editors do). |

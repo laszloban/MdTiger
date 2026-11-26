@@ -12,6 +12,8 @@ export interface Layout {
   tabs: HTMLElement;
   outline: HTMLElement;
   banner: HTMLElement;
+  /** Holds the find bar and the go-to-line bar, above the editor. */
+  dock: HTMLElement;
   content: HTMLElement;
   emptyState: HTMLElement;
   status: HTMLElement;
@@ -51,6 +53,7 @@ export function buildLayout(host: HTMLElement, settings: Pick<SettingsStore, "ge
   const banner = el("div", "banner");
   banner.hidden = true;
   banner.setAttribute("role", "status");
+  const dock = el("div", "dock");
   const content = el("main", "content");
 
   const emptyState = el("div", "empty-state");
@@ -68,7 +71,7 @@ export function buildLayout(host: HTMLElement, settings: Pick<SettingsStore, "ge
   emptyState.append(logo, title, hint);
   content.append(emptyState);
 
-  column.append(banner, content);
+  column.append(banner, dock, content);
   main.append(outline, column);
 
   let statusTimer: ReturnType<typeof setTimeout> | null = null;
@@ -97,6 +100,7 @@ export function buildLayout(host: HTMLElement, settings: Pick<SettingsStore, "ge
     tabs,
     outline,
     banner,
+    dock,
     content,
     emptyState,
     status,

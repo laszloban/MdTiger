@@ -378,3 +378,175 @@ kbd {
   border-radius: 6px;
   box-shadow: var(--shadow);
 }
+
+/* ---------------------------------------------------------------- S03 */
+:root {
+  --font-mono: Consolas, "Cascadia Mono", "Courier New", monospace;
+  --bg-active-line: rgba(0, 0, 0, 0.04);
+  --bg-find-match: rgba(217, 115, 31, 0.28);
+  --bg-find-current: rgba(217, 115, 31, 0.6);
+  --danger: #c0392b;
+
+  /* Source highlighting (@lezer/highlight classHighlighter); S08 themes these. */
+  --tok-heading: #0b5394;
+  --tok-keyword: #a626a4;
+  --tok-string: #2e7d32;
+  --tok-number: #b35c00;
+  --tok-comment: #6b7280;
+  --tok-meta: #6b7280;
+  --tok-link: #0b66c3;
+  --tok-name: #1f2328;
+  --tok-type: #0b7285;
+  --tok-property: #8a3b12;
+  --tok-operator: #1f2328;
+}
+
+.cm-scroller {
+  font-family: var(--font-mono);
+}
+.cm-activeLine {
+  background: var(--bg-active-line);
+}
+.cm-gutters {
+  background: var(--bg-sidebar);
+  color: var(--fg-muted);
+  border-right: 1px solid var(--border);
+}
+.cm-find-match {
+  background: var(--bg-find-match);
+  border-radius: 2px;
+}
+.cm-find-current {
+  background: var(--bg-find-current);
+}
+.cm-selectionBackground {
+  background: rgba(60, 130, 220, 0.3) !important;
+}
+
+.tok-heading {
+  color: var(--tok-heading);
+  font-weight: 600;
+}
+.tok-h1 { font-size: 1.3em; }
+.tok-h2 { font-size: 1.2em; }
+.tok-h3 { font-size: 1.1em; }
+.tok-strong { font-weight: 700; }
+.tok-emphasis { font-style: italic; }
+.tok-strikethrough { text-decoration: line-through; }
+.tok-link,
+.tok-url { color: var(--tok-link); }
+.tok-keyword,
+.tok-modifier,
+.tok-controlKeyword,
+.tok-definitionKeyword,
+.tok-moduleKeyword,
+.tok-operatorKeyword { color: var(--tok-keyword); }
+.tok-string,
+.tok-string2,
+.tok-regexp { color: var(--tok-string); }
+.tok-number,
+.tok-bool,
+.tok-atom,
+.tok-integer,
+.tok-float { color: var(--tok-number); }
+.tok-comment,
+.tok-lineComment,
+.tok-blockComment { color: var(--tok-comment); font-style: italic; }
+.tok-meta,
+.tok-processingInstruction,
+.tok-contentSeparator,
+.tok-quote { color: var(--tok-meta); }
+.tok-typeName,
+.tok-className,
+.tok-namespace { color: var(--tok-type); }
+.tok-propertyName,
+.tok-attributeName { color: var(--tok-property); }
+.tok-variableName,
+.tok-name,
+.tok-labelName { color: var(--tok-name); }
+.tok-operator,
+.tok-punctuation { color: var(--tok-operator); }
+.tok-monospace { color: var(--tok-string); }
+
+/* Live preview (experimental) */
+.lp-h { font-weight: 600; }
+.lp-h1 { font-size: 1.8em; }
+.lp-h2 { font-size: 1.45em; }
+.lp-h3 { font-size: 1.2em; }
+.lp-h4 { font-size: 1.05em; }
+.lp-image { max-width: 100%; max-height: 320px; display: block; }
+
+/* Find bar and go to line (docked above the editor) */
+#dock {
+  flex: none;
+}
+.dock-bar {
+  background: var(--bg-chrome);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#goto-bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.find-row[hidden] {
+  display: none;
+}
+.find-spacer {
+  width: 28px;
+  flex: none;
+}
+.dock-bar input {
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+}
+.dock-bar input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+.dock-bar input.invalid {
+  border-color: var(--danger);
+  outline-color: var(--danger);
+}
+#find-input,
+#replace-input {
+  width: 280px;
+}
+#find-count {
+  min-width: 90px;
+  padding: 0 6px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.dock-bar .icon-button.active {
+  background: var(--bg-find-match);
+  outline: 1px solid var(--accent);
+}
+.text-button {
+  font: inherit;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+.text-button:hover {
+  background: var(--bg-hover);
+}
+.dock-hint {
+  color: var(--fg-muted);
+}

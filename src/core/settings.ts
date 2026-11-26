@@ -12,12 +12,18 @@ export interface Settings {
   theme: ThemeSetting;
   "outline.visible": boolean;
   "outline.width": number;
+  /** Line numbers in the source editor (read when a document is opened). */
+  "editor.lineNumbers": boolean;
+  /** Experimental live preview in the source editor (needs a reload; no UI). */
+  "experimental.livePreview": boolean;
 }
 
 export const DEFAULTS: Readonly<Settings> = {
   theme: "system",
   "outline.visible": true,
   "outline.width": 260,
+  "editor.lineNumbers": false,
+  "experimental.livePreview": false,
 };
 
 const THEMES: readonly string[] = ["system", "light", "dark"];

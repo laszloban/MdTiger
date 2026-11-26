@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.0 – S02 verified, ready to start S03 |
+| **Status** | v1.0 – S03 verified |
 | **Date** | 2026-11-25 |
 | **What to build** | [FUNCTIONAL_REQUIREMENTS.md](FUNCTIONAL_REQUIREMENTS.md) (Draft 0.5) |
 | **Technology** | Tauri 2 + one TypeScript front end, decided after the [spike](../spike/RESULTS.md) |
@@ -18,7 +18,7 @@ checked it; then it is committed and pushed.
 |---|---|---|---|---|
 | [S01](steps/S01-foundation.md) | Foundation: project, shell, test harness | Verified | a511c3a | 5 (S01-1 to S01-5), all decided |
 | [S02](steps/S02-files-and-tabs.md) | Files and tabs | Verified | 97ea27f | 8 (S02-01 to S02-08), all decided |
-| [S03](steps/S03-source-editor.md) | Source editor, find and replace | Not started | | |
+| [S03](steps/S03-source-editor.md) | Source editor, find and replace | Verified | | 4 (S03-01, -02, -04, -05; S03-03 resolved), all decided |
 | [S04](steps/S04-rendered-view-and-modes.md) | Rendered view and modes | Not started | | |
 | [S05](steps/S05-rich-content.md) | Rich content: code blocks, Mermaid, images, links, checkboxes | Not started | | |
 | [S06](steps/S06-outline.md) | Outline sidebar and heading folding | Not started | | |
