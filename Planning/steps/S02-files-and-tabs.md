@@ -56,7 +56,8 @@ assembled.
 | Second instance | The `open` host event: opens a tab, or **switches to the existing tab** if the path is already open (compare case-insensitively, after normalising separators). Bring the window to the front. |
 | `Ctrl+O` | `host.pickFile()` (Tauri dialog, filter `*.md;*.markdown`, multi-select). |
 | Drag and drop | Tauri's window drag-drop event. `.md` and `.markdown` open; other files give a status hint "Not a Markdown file: <name>". |
-| Errors | Missing file, no access, invalid UTF-8: a status-bar hint and a log line, no dialog, no tab. |
+| Errors | Missing file, no access: a status-bar hint and a log line, no dialog, no tab. |
+| Invalid UTF-8 | The file opens (the shell has replaced invalid bytes with U+FFFD; `read_file` must report that it did, e.g. `lossy: true`). The doc remembers the flag. On save, the file is written and a non-blocking notification says the invalid bytes were replaced (plan OI-06). No dialog, no read-only mode. |
 
 ### 3.4 Saving and closing
 
@@ -125,7 +126,7 @@ tests. Nothing of this exists in a normal run.
 
 Fixtures to add: `crlf-bom.md` (from S01), `mixed-eol.md` (both LF and
 CRLF), `no-final-newline.md`, `hungarian.md` (accented text: árvíztűrő
-tükörfúrógép), `latin2.md` (not UTF-8, for the error path).
+tükörfúrógép), `latin2.md` (not UTF-8, for the lossy path).
 
 1. Start with three files → three tabs, the last active, titles and
    tooltips correct.
@@ -138,7 +139,7 @@ tükörfúrógép), `latin2.md` (not UTF-8, for the error path).
    in the file is still CRLF, BOM still there.
 5. Second instance with an open path → no new tab, that tab becomes active.
    With a new path → new tab.
-6. `latin2.md` → no tab, status hint, log line, no dialog.
+6. `latin2.md` → opens in a tab, no dialog; save → the notification about replaced bytes appears, and the log has a line. A missing path → no tab, status hint, log line.
 7. Close a dirty tab → dialog appears; *Cancel* keeps it; *Don't save*
    closes it and the file is unchanged; *Save* saves and closes.
 8. Save As via `nextSavePath` → new file written, tab title changes, old
@@ -176,5 +177,5 @@ open issues are listed below.
 |---|---|---|
 | S02-01 | Files with mixed line endings: CodeMirror splits lines on the one configured separator. Check whether `mixed-eol.md` round-trips byte-exact without edits, and what an edit does to it. | Must be byte-exact without edits. If an edit normalises the other endings, accept it and document it. |
 | S02-02 | Should `.txt` (or any text file) open too, or only `.md` / `.markdown`? | Only Markdown for now. |
-| S02-03 | Non-UTF-8 files are refused. Open as Windows-1250/1252 read-only instead? | Refuse for now (FR-FILE-05 is UTF-8). |
-| S02-04 | From S01-4 (plan OI-06): the shell reads files lossily (invalid bytes become U+FFFD), and the user decided a notification at save time is enough. This overlaps with the "invalid UTF-8 is refused" rule in §3.3 and S02-03. | Decide at the start of S02: either keep refusing (then the shell should fail on invalid UTF-8 instead of replacing bytes, and no notification is needed), or open such files and show the notification when they are saved. The user's S01-4 decision points to the second. |
+| S02-03 | Non-UTF-8 files are refused. Open as Windows-1250/1252 read-only instead? **Decided:** no codepage detection; such files open lossily (S02-04). |
+| S02-04 | From S01-4 (plan OI-06): the shell reads files lossily (invalid bytes become U+FFFD), and the user decided a notification at save time is enough. This overlaps with the "invalid UTF-8 is refused" rule in §3.3 and S02-03. | **Decided:** open such files and show the notification when they are saved (§3.3, test 6). |
