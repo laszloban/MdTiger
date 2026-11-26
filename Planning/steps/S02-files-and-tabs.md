@@ -88,7 +88,8 @@ assembled.
 ### 3.6 Drafts and session restore
 
 - **Drafts** (`src/core/drafts.ts`): 1 s after the last change, a dirty
-  document's text is written to `localStorage` under its path, with the
+  document's text is written to a draft file in the profile folder
+  (`<profile>\drafts\`, via the host; decided in S02-05) keyed by its path, with the
   file's `mtime` at the time (`baseMtime`), `bom` and `lineSeparator`.
   Untitled documents use their tab id.
 - On opening a file with a draft:
@@ -179,6 +180,9 @@ open issues are listed below.
 tests, release build, 23 end-to-end tests (9 from S01, 14 from S02: the 12
 cases of §4.2 plus 4b, 13 and 14). The e2e suites were run twice in a row,
 green both times. The manual checks (§4.3) are left to the user.
+**Verified by the user (2026-11-26):** all manual checks of §4.3 passed,
+including Explorer drag and drop (S02-08) and Ctrl+Tab, Ctrl+Shift+Tab,
+Ctrl+W, Ctrl+N on a real keyboard (S02-06).
 
 **What was built**
 - `src/core/doc.ts` (`Doc`, `detectLineSeparator`), `workspace.ts` (all tab
@@ -283,7 +287,7 @@ green both times. The manual checks (§4.3) are left to the user.
 | S02-02 | ~~Which files open.~~ | **Resolved:** only `.md` / `.markdown` by drop and dialog filter. |
 | S02-03 | Non-UTF-8 files are refused. | **Decided:** no codepage detection; they open lossily (S02-04). |
 | S02-04 | Lossy read. | **Decided and done:** open, then notify on save (§6). |
-| S02-05 | Drafts are files in the profile folder, not localStorage as §3.6 said, because localStorage loses the last ~5 s when the app is killed. | Keep the files and update §3.6 wording. Drafts of files that are never reopened stay in `<profile>\drafts\` (tiny); S10 could delete old ones. |
-| S02-06 | Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+W and Ctrl+N are WebView2 browser accelerators. The e2e tests prove our handler gets the keys (CDP), a real keyboard may differ. | Check by hand (§4.3). If WebView2 eats Ctrl+Tab, Ctrl+PgDn/PgUp are the alternatives. |
-| S02-07 | The app menu has no arrow-key navigation. | Fine for now; S09 (command palette) is the keyboard route. |
-| S02-08 | The OS drag from Explorer cannot be tested over CDP; only the `drop` host event is simulated. | Manual check. |
+| S02-05 | Drafts are files in the profile folder, not localStorage as §3.6 said, because localStorage loses the last ~5 s when the app is killed. | **Decided:** keep the files; §3.6 updated. Cleaning up old drafts is a candidate for S10. |
+| S02-06 | Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+W and Ctrl+N are WebView2 browser accelerators. The e2e tests prove our handler gets the keys (CDP), a real keyboard may differ. | **Decided:** check by hand at verification; if WebView2 eats Ctrl+Tab, Ctrl+PgDn/PgUp stay the route. |
+| S02-07 | The app menu has no arrow-key navigation. | **Decided:** accepted; S09's command palette is the keyboard route. |
+| S02-08 | The OS drag from Explorer cannot be tested over CDP; only the `drop` host event is simulated. | **Decided:** manual check at verification. |
