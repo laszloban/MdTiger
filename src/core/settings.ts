@@ -7,11 +7,16 @@ import type { Host } from "../host/host";
 import { log } from "./log";
 
 export type ThemeSetting = "system" | "light" | "dark";
+export type ModeSetting = "rendered" | "source" | "split";
 
 export interface Settings {
   theme: ThemeSetting;
   "outline.visible": boolean;
   "outline.width": number;
+  /** The mode new tabs open in. */
+  defaultMode: ModeSetting;
+  /** Share of the width the source gets in Split mode (0.15 to 0.85). */
+  "split.ratio": number;
   /** Line numbers in the source editor (read when a document is opened). */
   "editor.lineNumbers": boolean;
   /** Experimental live preview in the source editor (needs a reload; no UI). */
@@ -22,15 +27,20 @@ export const DEFAULTS: Readonly<Settings> = {
   theme: "system",
   "outline.visible": true,
   "outline.width": 260,
+  defaultMode: "rendered",
+  "split.ratio": 0.5,
   "editor.lineNumbers": false,
   "experimental.livePreview": false,
 };
 
 const THEMES: readonly string[] = ["system", "light", "dark"];
+const MODES: readonly string[] = ["rendered", "source", "split"];
 
 /** Whether a value read from the file is acceptable for this key. */
 function valid(key: keyof Settings, value: unknown): boolean {
   if (key === "theme") return typeof value === "string" && THEMES.includes(value);
+  if (key === "defaultMode") return typeof value === "string" && MODES.includes(value);
+  if (key === "split.ratio") return typeof value === "number" && value >= 0.15 && value <= 0.85;
   if (key === "outline.width") return typeof value === "number" && Number.isFinite(value) && value > 0;
   return typeof value === typeof DEFAULTS[key];
 }

@@ -5,7 +5,8 @@
 import { EditorView } from "@codemirror/view";
 import { createEditorState, createEditorView, type EditorOptions } from "../editor/createEditor";
 import type { Host } from "../host/host";
-import { Doc, detectLineSeparator, type LineSeparator } from "./doc";
+import { RenderedView } from "../render/view";
+import { Doc, detectLineSeparator, type LineSeparator, type Mode } from "./doc";
 import {
   clearDraft,
   decideDraft,
@@ -40,6 +41,8 @@ export interface WorkspaceDeps {
   confirmClose(doc: Doc, othersDirty: number): Promise<CloseChoice>;
   /** Editor settings read when a document's editor state is created. */
   editorOptions?: () => EditorOptions;
+  /** The mode new tabs open in (the `defaultMode` setting). */
+  defaultMode?: () => Mode;
   /** Test hooks: bypass the native dialogs. */
   overrides?: { nextPickPath: string[] | null; nextSavePath: string | null };
 }
@@ -55,6 +58,7 @@ export interface DocSnapshot {
   lineSeparator: LineSeparator;
   text: string;
   banner: string | null;
+  mode: Mode;
 }
 
 export class Workspace {
@@ -91,6 +95,7 @@ export class Workspace {
       lineSeparator: x.lineSeparator,
       text: x.text,
       banner: x.banner?.kind ?? null,
+      mode: x.mode,
     }));
   }
 
@@ -104,6 +109,7 @@ export class Workspace {
     return [
       EditorView.updateListener.of((u) => {
         if (!u.docChanged) return;
+        doc.rendered.notify(u.changes);
         this.scheduleDraft(doc);
         this.emit();
       }),
@@ -111,6 +117,8 @@ export class Workspace {
   }
 
   private makeView(doc: Doc, text: string): void {
+    doc.rendered = new RenderedView(() => doc.view.state);
+    doc.mode = this.d.defaultMode?.() ?? "rendered";
     doc.view = createEditorView(createEditorState(text, doc.lineSeparator, this.extensionsFor(doc), this.d.editorOptions?.()));
   }
 
@@ -174,8 +182,17 @@ export class Workspace {
       doc.bom = draft.bom;
       doc.lineSeparator = draft.lineSeparator;
       doc.view.setState(createEditorState(draft.text, draft.lineSeparator, this.extensionsFor(doc), this.d.editorOptions?.()));
+      doc.rendered.invalidate();
       this.scheduleDraft(doc);
     }
+    this.emit();
+  }
+
+  /** Sets a tab's view mode (the views follow through `onChange`). */
+  setMode(doc: Doc, mode: Mode): void {
+    if (doc.mode === mode) return;
+    doc.mode = mode;
+    this.writeSessionNow();
     this.emit();
   }
 
@@ -183,7 +200,7 @@ export class Workspace {
 
   private writeSessionNow(): void {
     writeSession(this.d.session, {
-      tabs: this.docs.map((x) => ({ path: x.path, id: x.id })),
+      tabs: this.docs.map((x) => ({ path: x.path, id: x.id, mode: x.mode })),
       active: this.activeId,
     });
   }
@@ -196,6 +213,8 @@ export class Workspace {
     for (const t of s.tabs) {
       if (t.path) await this.open(t.path, { activate: false, id: t.id, quiet: true });
       else this.newDoc(t.id, await readDraft(this.d.drafts, draftKey(null, t.id)));
+      const doc = this.docs.find((x) => x.id === t.id);
+      if (doc && (t.mode === "rendered" || t.mode === "source" || t.mode === "split")) doc.mode = t.mode;
     }
     const active = this.docs.find((x) => x.id === s.active) ?? this.docs[this.docs.length - 1];
     if (active) this.activate(active.id);

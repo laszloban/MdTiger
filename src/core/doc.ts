@@ -4,7 +4,11 @@
 
 import type { Text } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
+import type { RenderedView } from "../render/view";
 import { fileName } from "./paths";
+
+/** How a tab shows its document (FR-EDIT-05). */
+export type Mode = "rendered" | "source" | "split";
 
 export type LineSeparator = "\n" | "\r\n";
 
@@ -43,10 +47,15 @@ export class Doc {
   /** Set by the workspace right after creation. */
   view!: EditorView;
   scrollTop = 0;
+  /** Source offset at the top of the view when the tab was left (S04). */
+  topPos = 0;
   banner: BannerState | null = null;
   draftTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Slots later steps fill: mode (S04), fold state (S06). */
-  mode?: string;
+  /** The tab's view mode (per tab, FR-FILE-06). */
+  mode: Mode = "rendered";
+  /** The rendered pane; created with the editor, kept while the tab is open. */
+  rendered!: RenderedView;
+  /** Slot for S06. */
   fold?: unknown;
 
   constructor(

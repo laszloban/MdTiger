@@ -7,7 +7,7 @@
 // MdTiger is open (the second launch would be handed over to it).
 
 import { execFileSync, spawn } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -208,15 +208,17 @@ export function clipboard() {
  * @param {string[]} [opts.files]       paths passed on the command line
  * @param {object}   [opts.env]         extra environment variables
  * @param {string}   [opts.profile]     reuse this profile folder (default: a fresh one)
+ * @param {object}   [opts.settings]    written to settings.json before the start (if the profile has none yet)
  * @param {boolean}  [opts.waitForPage] wait for the page (default true)
  */
-export async function launchApp({ files = [], env = {}, profile, waitForPage = true } = {}) {
+export async function launchApp({ files = [], env = {}, profile, settings, waitForPage = true } = {}) {
   if (!existsSync(EXE)) throw new Error(`${EXE} not found: build first with: npx tauri build --no-bundle (a plain cargo build --release makes an exe that loads the dev server URL)`);
   if (running.size === 0 && mdtigerRunning()) {
     throw new Error("another MdTiger is running; close it first (single-instance: the test launch would be handed over to it)");
   }
   const profileDir = profile ?? newProfileDir();
   mkdirSync(profileDir, { recursive: true });
+  if (settings && !existsSync(join(profileDir, "settings.json"))) writeFileSync(join(profileDir, "settings.json"), JSON.stringify(settings));
   const port = await freePort();
   const fullEnv = {
     ...process.env,

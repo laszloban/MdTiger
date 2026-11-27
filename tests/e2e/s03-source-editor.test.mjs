@@ -13,7 +13,8 @@ const apps = [];
 // One app at a time (single instance): starting a test's app ends the previous one.
 const start = async (opts) => {
   for (const old of apps) await old.close();
-  const a = await launchApp(opts);
+  // These suites test the editor: tabs open in Source mode (S04 made Rendered the default).
+  const a = await launchApp({ settings: { defaultMode: "source" }, ...opts });
   apps.push(a);
   await a.waitFor(`document.visibilityState === 'visible'`);
   await a.waitFor(`window.__mdtiger && window.__mdtiger.docs.length === ${opts?.files?.length ?? 0}`);

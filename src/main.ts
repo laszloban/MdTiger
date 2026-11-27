@@ -14,6 +14,9 @@ import { redo, undo } from "@codemirror/commands";
 import { showDialog, isDialogOpen } from "./ui/dialog";
 import { mountFindBar } from "./ui/findBar";
 import { mountGotoLine } from "./ui/gotoLine";
+import { mountModeSwitch } from "./ui/modeSwitch";
+import { mountPanes } from "./ui/panes";
+import type { Mode } from "./core/doc";
 import { buildLayout } from "./ui/layout";
 import { createMenu } from "./ui/menu";
 import { mountTabs } from "./ui/tabs";
@@ -37,6 +40,7 @@ async function main(): Promise<void> {
     hint: (t) => layout.setStatus(t),
     notify: (t) => layout.notify(t),
     overrides,
+    defaultMode: () => settings.get("defaultMode"),
     editorOptions: () => ({ lineNumbers: settings.get("editor.lineNumbers"), livePreview: settings.get("experimental.livePreview") }),
     async confirmClose(doc, othersDirty): Promise<CloseChoice> {
       const buttons: { id: CloseChoice; label: string; primary?: boolean }[] = [{ id: "save", label: "Save", primary: true }];
@@ -119,6 +123,25 @@ async function main(): Promise<void> {
     { command: "tab.closeAll" },
     { command: "app.about", separator: true },
   ], { id: "app-menu", label: "Menu" });
+
+  // ---- modes (S04): the switch in the toolbar, the panes it drives, the shortcuts
+  const modeSwitch = mountModeSwitch(layout.toolbar, (m) => {
+    if (ws.active) ws.setMode(ws.active, m);
+  });
+  mountPanes(layout, ws, settings, modeSwitch);
+  const setMode = (m: Mode) => () => {
+    if (ws.active) ws.setMode(ws.active, m);
+  };
+  commands.register({ id: "view.rendered", label: "Rendered view", shortcut: "Mod-1", enabled: hasDoc, run: setMode("rendered") });
+  commands.register({ id: "view.source", label: "Source view", shortcut: "Mod-2", enabled: hasDoc, run: setMode("source") });
+  commands.register({ id: "view.split", label: "Split view", shortcut: "Mod-3", enabled: hasDoc, run: setMode("split") });
+  commands.register({
+    id: "view.toggleSource",
+    label: "Toggle Rendered / Source",
+    shortcut: "Mod-e",
+    enabled: hasDoc,
+    run: () => ws.active && ws.setMode(ws.active, ws.active.mode === "source" ? "rendered" : "source"),
+  });
 
   // ---- host events: second instance, drag and drop, window close
   const handleHostEvent = (e: HostEvent) => {

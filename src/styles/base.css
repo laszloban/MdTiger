@@ -550,3 +550,302 @@ kbd {
 .dock-hint {
   color: var(--fg-muted);
 }
+
+/* ---------------------------------------------------------------- S04 */
+:root {
+  --fg-on-accent: #ffffff;
+  --bg-code: #f3f4f6;
+  --bg-zebra: #f8f9fa;
+  --render-width: 800px;
+  --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --split-gap: 6px;
+}
+
+/* Panes: the source and the rendered view side by side, or one of them. */
+#content {
+  overflow: hidden;
+}
+#workarea {
+  display: flex;
+  height: 100%;
+  --split-ratio: 0.5;
+}
+#pane-source,
+#pane-rendered {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+#pane-source > .cm-editor {
+  height: 100%;
+  background: var(--bg);
+}
+#pane-source > .cm-editor.cm-focused {
+  outline: none;
+}
+#pane-rendered {
+  flex: 1;
+  /* Typing in the source must not pay for the layout of a big rendered document (NFR-02). */
+  contain: strict;
+}
+#split-divider {
+  flex: none;
+  width: var(--split-gap);
+  cursor: col-resize;
+  background: var(--border);
+  touch-action: none;
+}
+#split-divider:hover,
+#split-divider.dragging {
+  background: var(--accent);
+}
+#workarea[data-mode="rendered"] #pane-source,
+#workarea[data-mode="rendered"] #split-divider,
+#workarea[data-mode="source"] #pane-rendered,
+#workarea[data-mode="source"] #split-divider {
+  display: none;
+}
+#workarea[data-mode="source"] #pane-source {
+  flex: 1;
+}
+#workarea[data-mode="split"] #pane-source {
+  flex: 0 0 calc((100% - var(--split-gap)) * var(--split-ratio));
+}
+
+/* Mode switch: the pressed button is the accent-colored one. */
+#mode-switch {
+  display: inline-flex;
+  margin-left: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.mode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.mode-button:last-child {
+  border-right: 0;
+}
+.mode-button:hover:not([aria-pressed="true"]):not(:disabled) {
+  background: var(--bg-hover);
+}
+.mode-button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  font-weight: 600;
+}
+.mode-button:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: -3px;
+}
+.mode-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (max-width: 760px) {
+  .mode-label {
+    display: none;
+  }
+}
+
+/* Rendered view */
+.rendered-pane {
+  height: 100%;
+  overflow: auto;
+  background: var(--bg);
+  outline: none;
+}
+.rendered-doc {
+  max-width: var(--render-width);
+  margin: 0 auto;
+  padding: 24px 28px 64px;
+  font: 16px / 1.65 var(--font-body);
+  overflow-wrap: break-word;
+}
+.rendered-doc > :first-child {
+  margin-top: 0;
+}
+.rendered-doc h1,
+.rendered-doc h2,
+.rendered-doc h3,
+.rendered-doc h4,
+.rendered-doc h5,
+.rendered-doc h6 {
+  margin: 1.5em 0 0.6em;
+  line-height: 1.25;
+  font-weight: 650;
+}
+.rendered-doc h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+.rendered-doc h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--border);
+}
+.rendered-doc h3 {
+  font-size: 1.25em;
+}
+.rendered-doc h4 {
+  font-size: 1.05em;
+}
+.rendered-doc h5 {
+  font-size: 0.95em;
+}
+.rendered-doc h6 {
+  font-size: 0.9em;
+  color: var(--fg-muted);
+}
+.rendered-doc p,
+.rendered-doc ul,
+.rendered-doc ol,
+.rendered-doc blockquote,
+.rendered-doc pre,
+.rendered-doc .table-wrap,
+.rendered-doc details {
+  margin: 0 0 1em;
+}
+.rendered-doc ul,
+.rendered-doc ol {
+  padding-left: 2em;
+}
+.rendered-doc li > ul,
+.rendered-doc li > ol {
+  margin: 0.25em 0;
+}
+.rendered-doc li.task-list-item {
+  list-style: none;
+  margin-left: -1.4em;
+}
+.rendered-doc .task-box {
+  margin: 0 0.4em 0 0;
+  vertical-align: middle;
+}
+.rendered-doc a {
+  color: var(--tok-link);
+  text-decoration: none;
+}
+.rendered-doc a:hover {
+  text-decoration: underline;
+}
+.rendered-doc blockquote {
+  padding: 0 1em;
+  color: var(--fg-muted);
+  border-left: 4px solid var(--border);
+}
+.rendered-doc code {
+  font: 0.9em var(--font-mono);
+  padding: 0.15em 0.35em;
+  background: var(--bg-code);
+  border-radius: 4px;
+}
+.rendered-doc pre {
+  padding: 12px 14px;
+  overflow: auto;
+  background: var(--bg-code);
+  border-radius: 6px;
+  line-height: 1.45;
+}
+.rendered-doc pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.88em;
+}
+.rendered-doc hr {
+  height: 2px;
+  margin: 1.5em 0;
+  border: 0;
+  background: var(--border);
+}
+.rendered-doc kbd {
+  font: 0.85em var(--font-mono);
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg-code);
+}
+.rendered-doc .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.rendered-doc table {
+  border-collapse: collapse;
+  min-width: 40%;
+  /* Wide tables scroll inside their wrapper instead of squeezing every column. */
+  width: max-content;
+  max-width: none;
+}
+.rendered-doc th,
+.rendered-doc td {
+  max-width: 28em;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.rendered-doc th {
+  font-weight: 650;
+  background: var(--bg-code);
+}
+.rendered-doc tbody tr:nth-child(even) td {
+  background: var(--bg-zebra);
+}
+.rendered-doc .image-placeholder {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--fg-muted);
+  font-size: 0.9em;
+}
+.rendered-doc img {
+  max-width: 100%;
+}
+.rendered-doc details {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.rendered-doc details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.rendered-doc details.front-matter {
+  background: var(--bg-sidebar);
+  color: var(--fg-muted);
+  font-size: 0.9em;
+}
+.rendered-doc details.front-matter pre {
+  margin: 8px 0;
+}
+.rendered-doc sup.footnote-ref {
+  font-size: 0.75em;
+  line-height: 0;
+}
+.rendered-doc section.footnotes {
+  margin-top: 2em;
+  font-size: 0.9em;
+  color: var(--fg-muted);
+}
+.rendered-doc section.footnotes hr {
+  margin: 0 0 0.8em;
+}
+.rendered-doc .footnote-back {
+  margin-left: 0.3em;
+}
+.tok-meta {
+  color: var(--tok-meta);
+}

@@ -76,6 +76,8 @@ export interface SessionTab {
   /** Null for an untitled document. */
   path: string | null;
   id: string;
+  /** View mode of the tab (S04); absent in older sessions. */
+  mode?: string;
 }
 
 export interface Session {

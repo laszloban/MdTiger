@@ -1,0 +1,106 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snapshots > showcase.md 1`] = `
+"<details class="front-matter" data-from="0" data-to="57"><summary>Front matter</summary><pre><code>title: MdTiger spike showcase
+tags: [spike, test]</code></pre></details><h1 data-from="59" data-to="83" id="mdtiger-spike-showcase">MdTiger spike showcase</h1><p data-from="85" data-to="258">This document exercises the spike checks. Headings below are written the way
+AI tools often write them, some already numbered: the outline must show them
+exactly as written.</p><h2 data-from="260" data-to="282" id="1-code-blocks-s2">1. Code blocks (S2)</h2><p data-from="284" data-to="425">Select from <strong>this paragraph</strong> into the code block below, then copy and paste
+into Word or Outlook: the code part must arrive without colors.</p><pre data-from="427" data-to="677" data-lang="powershell"><code># Find large log files
+Get-ChildItem -Path C:\\Logs -Recurse -Filter *.log |
+    Where-Object Length -gt 10MB |
+    Sort-Object Length -Descending |
+    Select-Object FullName, @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }</code></pre><pre data-from="679" data-to="901" data-lang="csharp"><code>public sealed record Heading(int Level, string Text, int From)
+{
+    public static Heading Parse(string line, int from) =&gt;
+        new(line.TakeWhile(c =&gt; c == '#').Count(), line.TrimStart('#', ' '), from);
+}</code></pre><pre data-from="903" data-to="1001" data-lang="json"><code>{ "name": "MdTiger", "startupTargetMs": { "warm": 1000, "cold": 2000 }, "tabs": true }</code></pre><pre data-from="1003" data-to="1078"><code>A block with no language tag.
+    Indentation must survive copying.</code></pre><p data-from="1080" data-to="1142">Inline code like <code>Get-Process | Sort-Object CPU</code> stays inline.</p><h2 data-from="1144" data-to="1165" id="2-task-lists-s5">2. Task lists (S5)</h2><ul data-from="1167" data-to="1359">
+<li class="task-list-item" data-from="1167" data-to="1188"><input type="checkbox" class="task-box" disabled="" data-from="1169" data-to="1172"> Plain open task</li>
+<li class="task-list-item" data-from="1189" data-to="1218"><input type="checkbox" class="task-box" disabled="" data-from="1191" data-to="1194" checked=""> Done task (lowercase x)</li>
+<li class="task-list-item" data-from="1219" data-to="1289"><input type="checkbox" class="task-box" disabled="" data-from="1221" data-to="1224" checked=""> Done task (uppercase X: unticking and ticking again keeps the X)</li>
+<li class="task-list-item" data-from="1290" data-to="1359"><input type="checkbox" class="task-box" disabled="" data-from="1292" data-to="1295"> Parent task<ul data-from="1310" data-to="1359">
+<li class="task-list-item" data-from="1310" data-to="1333"><input type="checkbox" class="task-box" disabled="" data-from="1312" data-to="1315"> Nested child task</li>
+<li class="task-list-item" data-from="1336" data-to="1359"><input type="checkbox" class="task-box" disabled="" data-from="1338" data-to="1341" checked=""> Nested done child</li>
+</ul>
+</li>
+</ul><ol data-from="1360" data-to="1406">
+<li class="task-list-item" data-from="1360" data-to="1380"><input type="checkbox" class="task-box" disabled="" data-from="1363" data-to="1366"> Numbered task</li>
+<li class="task-list-item" data-from="1381" data-to="1406"><input type="checkbox" class="task-box" disabled="" data-from="1384" data-to="1387" checked=""> Numbered done task</li>
+</ol><h2 data-from="1408" data-to="1426" id="3-mermaid-s4">3. Mermaid (S4)</h2><pre data-from="1428" data-to="1637" data-lang="mermaid"><code>flowchart LR
+    A[Open file] --&gt; B{Changed on disk?}
+    B -- no --&gt; C[Render]
+    B -- yes --&gt; D{Unsaved edits?}
+    D -- no --&gt; E[Reload silently]
+    D -- yes --&gt; F[Ask: reload or keep mine]</code></pre><pre data-from="1639" data-to="1836" data-lang="mermaid"><code>sequenceDiagram
+    participant U as User
+    participant F as Front end
+    participant H as Host shell
+    U-&gt;&gt;F: Ctrl+S
+    F-&gt;&gt;H: writeFile(path, text, bom)
+    H--&gt;&gt;F: { mtime }</code></pre><p data-from="1838" data-to="1923">This one has a deliberate syntax error; the rest of the document must keep
+rendering:</p><pre data-from="1925" data-to="1996" data-lang="mermaid"><code>flowchart LR
+    A --&gt; 
+    this is not valid mermaid ((</code></pre><h2 data-from="1998" data-to="2010" id="4-tables">4. Tables</h2><div class="table-wrap" data-from="2012" data-to="2163"><table>
+<thead><tr><th data-from="2014" data-to="2025">Requirement</th><th style="text-align:center" data-from="2028" data-to="2036">Priority</th><th style="text-align:right" data-from="2039" data-to="2045">Status</th></tr>
+</thead>
+<tbody>
+<tr><td data-from="2067" data-to="2082">Code-block copy</td><td style="text-align:center" data-from="2085" data-to="2086">M</td><td style="text-align:right" data-from="2089" data-to="2093">done</td></tr>
+<tr><td data-from="2098" data-to="2110">Outline tree</td><td style="text-align:center" data-from="2113" data-to="2114">M</td><td style="text-align:right" data-from="2117" data-to="2121">done</td></tr>
+<tr><td data-from="2126" data-to="2138">Live preview</td><td style="text-align:center" data-from="2141" data-to="2148">Phase 2</td><td style="text-align:right" data-from="2151" data-to="2161">groundwork</td></tr>
+</tbody>
+</table></div><p data-from="2165" data-to="2226">Typical AI table with uneven padding and missing outer pipes:</p><div class="table-wrap" data-from="2228" data-to="2327"><table>
+<thead><tr><th data-from="2228" data-to="2233">Shell</th><th data-from="2236" data-to="2243">Startup</th><th data-from="2246" data-to="2251">Notes</th></tr>
+</thead>
+<tbody>
+<tr><td data-from="2268" data-to="2275">Tauri 2</td><td data-from="2278" data-to="2279">?</td><td data-from="2282" data-to="2297">thin Rust layer</td></tr>
+<tr><td data-from="2298" data-to="2312">WPF + WebView2</td><td data-from="2315" data-to="2316">?</td><td data-from="2319" data-to="2327">C# shell</td></tr>
+</tbody>
+</table></div><h3 data-from="2329" data-to="2350" id="41-escaped-pipes">4.1 Escaped pipes</h3><div class="table-wrap" data-from="2352" data-to="2437"><table>
+<thead><tr><th data-from="2354" data-to="2364">Expression</th><th data-from="2367" data-to="2374">Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td data-from="2389" data-to="2397"><code>a | b</code></td><td data-from="2400" data-to="2406">a or b</td></tr>
+<tr><td data-from="2411" data-to="2417">x | y</td><td data-from="2420" data-to="2435">escaped in text</td></tr>
+</tbody>
+</table></div><h2 data-from="2439" data-to="2461" id="5-links-and-images">5. Links and images</h2><ul data-from="2463" data-to="2703">
+<li data-from="2463" data-to="2517">Anchor: <a href="#1-code-blocks-s2" data-from="2473" data-to="2517">jump to the code blocks</a></li>
+<li data-from="2518" data-to="2587">Relative Markdown file: <a href="tables.md" data-from="2544" data-to="2566">tables.md</a> (opens in a new tab)</li>
+<li data-from="2588" data-to="2634">External: <a href="https://tauri.app" data-from="2600" data-to="2634">Tauri website</a></li>
+<li data-from="2635" data-to="2667">Autolink: <a href="https://github.com" data-from="2647" data-to="2667">https://github.com</a></li>
+<li data-from="2668" data-to="2703">Bare URL: <a href="https://www.example.com" data-from="2680" data-to="2703">https://www.example.com</a></li>
+</ul><p data-from="2705" data-to="2717">Local image:</p><p data-from="2719" data-to="2764"><span class="image-placeholder" data-from="2719" data-to="2764" data-src="images/tiger.svg" title="images/tiger.svg">MdTiger logo placeholder</span></p><p data-from="2766" data-to="2848">Remote image (needs network; shows a placeholder when offline, retries on resume):</p><p data-from="2850" data-to="2922"><span class="image-placeholder" data-from="2850" data-to="2922" data-src="https://placehold.co/320x80/png?text=remote+image" title="https://placehold.co/320x80/png?text=remote+image">Remote placeholder</span></p><h2 data-from="2924" data-to="2942" id="6-other-blocks">6. Other blocks</h2><blockquote data-from="2944" data-to="3041">
+<p data-from="2946" data-to="3041">A blockquote with <strong>bold</strong>, <em>italic</em>, <del>strikethrough</del> and <code>code</code>.
+ Second line of the quote.</p>
+</blockquote><p data-from="3043" data-to="3079">Line with a hard break<br>right here.</p><details data-from="3081" data-to="3179">
+<summary>Raw HTML details block</summary>
+<p data-from="3134" data-to="3167">Content inside a details element.</p>
+</details><hr data-from="3181" data-to="3184"><h3 data-from="3186" data-to="3208" id="61-deeper-heading">6.1 Deeper heading</h3><h4 data-from="3210" data-to="3232" id="611-even-deeper">6.1.1 Even deeper</h4><h5 data-from="3234" data-to="3250" id="level-five">Level five</h5><h6 data-from="3252" data-to="3268" id="level-six">Level six</h6><h2 data-from="3270" data-to="3296" id="7-setext-heading-below">7. Setext heading below</h2><h2 data-from="3298" data-to="3327" id="setext-level-2">Setext level 2</h2><p data-from="3329" data-to="3345">Final paragraph.</p>"
+`;
+
+exports[`snapshots > tables.md 1`] = `
+"<h1 data-from="0" data-to="15" id="tables-sample">Tables sample</h1><p data-from="17" data-to="110">Opened through a relative link from showcase.md. <a href="showcase.md#4-tables" data-from="66" data-to="110">Back to the showcase</a></p><h2 data-from="112" data-to="124" id="alignment">Alignment</h2><div class="table-wrap" data-from="126" data-to="221"><table>
+<thead><tr><th style="text-align:left" data-from="128" data-to="132">Left</th><th style="text-align:center" data-from="135" data-to="141">Center</th><th style="text-align:right" data-from="144" data-to="149">Right</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align:left" data-from="180" data-to="181">a</td><td style="text-align:center" data-from="184" data-to="185">b</td><td style="text-align:right" data-from="188" data-to="189">c</td></tr>
+<tr><td style="text-align:left" data-from="194" data-to="205">longer cell</td><td style="text-align:center" data-from="208" data-to="211">mid</td><td style="text-align:right" data-from="214" data-to="219">1 234</td></tr>
+</tbody>
+</table></div><h2 data-from="223" data-to="242" id="ragged-ai-output">Ragged AI output</h2><div class="table-wrap" data-from="244" data-to="319"><table>
+<thead><tr><th data-from="245" data-to="249">Name</th><th data-from="250" data-to="255">Value</th></tr>
+</thead>
+<tbody>
+<tr><td data-from="264" data-to="279">missing padding</td><td data-from="280" data-to="281">1</td></tr>
+<tr><td data-from="285" data-to="295">extra cell</td><td data-from="298" data-to="299">2</td></tr>
+<tr><td data-from="308" data-to="317">short row</td><td></td></tr>
+</tbody>
+</table></div><h2 data-from="321" data-to="354" id="tasks-inside-a-table-heavy-doc">Tasks inside a table-heavy doc</h2><ul data-from="356" data-to="458">
+<li class="task-list-item" data-from="356" data-to="414"><input type="checkbox" class="task-box" disabled="" data-from="358" data-to="361"> Check ragged rows render without breaking the layout</li>
+<li class="task-list-item" data-from="415" data-to="458"><input type="checkbox" class="task-box" disabled="" data-from="417" data-to="420"> Check wide tables scroll horizontally</li>
+</ul><div class="table-wrap" data-from="460" data-to="669"><table>
+<thead><tr><th data-from="462" data-to="507">A very wide column header that goes on and on</th><th data-from="510" data-to="554">Another very wide column header that goes on</th><th data-from="557" data-to="606">And a third very wide column header for scrolling</th><th data-from="609" data-to="615">Fourth</th><th data-from="618" data-to="623">Fifth</th></tr>
+</thead>
+<tbody>
+<tr><td data-from="650" data-to="651">x</td><td data-from="654" data-to="655">x</td><td data-from="658" data-to="659">x</td><td data-from="662" data-to="663">x</td><td data-from="666" data-to="667">x</td></tr>
+</tbody>
+</table></div>"
+`;

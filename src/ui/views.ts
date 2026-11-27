@@ -1,12 +1,11 @@
-// Shows the active document's editor in the content area, keeps the banner
-// and the window title in step with the workspace.
+// Keeps the banner and the window title in step with the workspace. (The
+// editor and rendered panes are managed by panes.ts.)
 
 import type { Host } from "../host/host";
 import type { Workspace } from "../core/workspace";
 import type { Layout } from "./layout";
 
 export function mountViews(layout: Layout, ws: Workspace, host: Host): void {
-  let shown: string | null = null;
   let lastTitle = "";
   let bannerSig = "";
 
@@ -21,22 +20,6 @@ export function mountViews(layout: Layout, ws: Workspace, host: Host): void {
 
   const sync = () => {
     const active = ws.active;
-
-    // Editor
-    if (active?.id !== shown) {
-      const prev = ws.docs.find((d) => d.id === shown);
-      if (prev) {
-        prev.scrollTop = prev.view.scrollDOM.scrollTop;
-        prev.view.dom.remove();
-      }
-      shown = active?.id ?? null;
-      if (active) {
-        layout.content.append(active.view.dom);
-        active.view.scrollDOM.scrollTop = active.scrollTop;
-        active.view.focus();
-      }
-      layout.showEmptyState(!active);
-    }
 
     // Banner
     const b = active?.banner;
